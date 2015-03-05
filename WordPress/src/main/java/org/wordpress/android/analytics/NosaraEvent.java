@@ -6,6 +6,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.Serializable;
+import java.util.Iterator;
 
 public class NosaraEvent implements Serializable {
 
@@ -36,15 +37,37 @@ public class NosaraEvent implements Serializable {
             eventJSON.put("_via_ua", mUserAgent);
             eventJSON.put("_ts", mTimeStamp);
             if (mUserProperties != null && mUserProperties.length() > 0 ) {
-                eventJSON.put("user_info", mUserProperties.toString());
+                unfolderProperties(mUserProperties, "user_info_", eventJSON);
             }
             if (mDeviceInfo != null && mDeviceInfo.length() > 0) {
-                eventJSON.put("device_info", mDeviceInfo.toString());
+                unfolderProperties(mDeviceInfo, "device_info_", eventJSON);
             }
             return eventJSON;
         } catch (JSONException err) {
-            Log.e(LOGTAG, "Cannot writhe the JSON representation of this object", err);
+            Log.e(LOGTAG, "Cannot write the JSON representation of this object", err);
             return null;
+        }
+    }
+
+    // Nosora only strings property values. Don't convert JSON objs with toString()
+    // Otherwise they will be likely un-queryable
+    private void unfolderProperties(JSONObject objectToFlatten, String prefix, JSONObject eventJSON) {
+        Iterator<String> iter = objectToFlatten.keys();
+        while (iter.hasNext()) {
+            String key = iter.next();
+            try {
+                Object value = objectToFlatten.get(key);
+                String valueString;
+                if (value != null) {
+                    valueString = String.valueOf(value);
+                } else {
+                    valueString = "";
+                }
+                eventJSON.put(String.valueOf(prefix + key).toLowerCase(), valueString);
+            } catch (JSONException e) {
+                // Something went wrong!
+                Log.e(LOGTAG, "Cannot write the flatten JSON representation of this object", e);
+            }
         }
     }
 

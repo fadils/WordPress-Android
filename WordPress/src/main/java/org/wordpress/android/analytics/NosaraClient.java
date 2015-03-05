@@ -75,7 +75,7 @@ public class NosaraClient {
                                 sendRequests();
                             }
                         } catch (InterruptedException err) {
-                            Log.e(LOGTAG, "Something went wrong while wainting on the queue of events", err);
+                            Log.e(LOGTAG, "Something went wrong while waiting on the queue of events", err);
                         }
                     }
                 }
@@ -158,6 +158,7 @@ public class NosaraClient {
         if (deviceInfo != null && deviceInfo.length() > 0) {
             event.setDeviceInfo(deviceInfo);
         }
+
         if (mUserProperties != null && mUserProperties.length() > 0) {
             event.setUserProperties(mUserProperties);
         }

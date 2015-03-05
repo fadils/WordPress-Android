@@ -20,7 +20,9 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
     private static final String DOTCOM_USER = "dotcom_user";
     private static final String JETPACK_USER = "jetpack_user";
     private static final String MIXPANEL_NUMBER_OF_BLOGS = "number_of_blogs";
-    private static final String VERSION_CODE = "version_code";
+
+    private static final String EVENTS_PREFIX = "wpandroid_";
+
 
     private NosaraClient mNosaraClient;
 
@@ -143,7 +145,7 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
             return;
         }
 
-        mNosaraClient.track(eventName, "16154691"); // eritreocazzulati
+        mNosaraClient.track(EVENTS_PREFIX + eventName, "16154691"); // eritreocazzulati
 
         //trackNosaraDataForInstructions(instructions, properties);
     }
@@ -179,7 +181,6 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
             properties.put(DOTCOM_USER, connected);
             properties.put(JETPACK_USER, jetpackUser);
             properties.put(MIXPANEL_NUMBER_OF_BLOGS, numBlogs);
-            properties.put(VERSION_CODE, PackageUtils.getVersionCode(WordPress.getContext()));
             if (connected) {
                 SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(WordPress.getContext());
                 String username = preferences.getString(WordPress.WPCOM_USERNAME_PREFERENCE, null);
