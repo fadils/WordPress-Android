@@ -8,24 +8,47 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-/**
- * Abstracts away possibly non-present system information classes,
- * and handles permission-dependent queries for default system information.
- */
-/* package */ class NosaraExtendedSystemInformation {
-    public static final String LOGTAG = "NosaraExtendedSysInfo";
 
-    public NosaraExtendedSystemInformation(Context context) {
+/* package */ class NosaraDeviceInformation {
+    public static final String LOGTAG = "NosaraDeviceInformation";
+
+    private final Context mContext;
+
+    // Unchanging facts
+    private final Boolean mHasNFC;
+    private final Boolean mHasTelephony;
+    private final DisplayMetrics mDisplayMetrics;
+    private final String mAppVersionName;
+    private final Integer mAppVersionCode;
+    private final String mOs;
+    private final String mOSVersion;
+    private final String mManufacturer;
+    private final String mBrand;
+    private final String mModel;
+
+    private final JSONObject deviceInfoJSON; // JSON representation of information returned from this class
+
+    public NosaraDeviceInformation(Context context) {
         mContext = context;
+
+        mOs = "Android";
+        mOSVersion = Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE;
+        mManufacturer = Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER;
+        mBrand = Build.BRAND == null ? "UNKNOWN" : Build.BRAND;
+        mModel = Build.MODEL == null ? "UNKNOWN" : Build.MODEL;
 
         PackageManager packageManager = mContext.getPackageManager();
 
@@ -72,6 +95,68 @@ import java.lang.reflect.Method;
 
         Display display = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         display.getMetrics(mDisplayMetrics);
+
+        // pre-populate the JSON version with immutable info here for performance reasons
+        deviceInfoJSON = new JSONObject();
+        try {
+            deviceInfoJSON.put("os", mOs);
+            deviceInfoJSON.put("os_version", mOSVersion);
+            deviceInfoJSON.put("manufacturer", mManufacturer);
+            deviceInfoJSON.put("brand", mBrand);
+            deviceInfoJSON.put("model", mModel);
+            deviceInfoJSON.put("app_version", getAppVersionName());
+            deviceInfoJSON.put("app_version_code", Integer.toString(getAppVersionCode()));
+        } catch (final JSONException e) {
+            Log.e(LOGTAG, "Exception writing basic device info values in JSON object", e);
+        }
+        try {
+            deviceInfoJSON.put("has_NFC", hasNFC());
+        } catch (final JSONException e) {
+            Log.e(LOGTAG, "Exception writing has_NFS value in JSON object", e);
+        }
+        try {
+            deviceInfoJSON.put("has_telephony", hasTelephony());
+        } catch (final JSONException e) {
+            Log.e(LOGTAG, "Exception writing has_telephony value in JSON object", e);
+        }
+        try {
+            DisplayMetrics dMetrics = getDisplayMetrics();
+            deviceInfoJSON.put("display_density_dpi", dMetrics.densityDpi);
+            deviceInfoJSON.put("display_width_px", dMetrics.widthPixels);
+            deviceInfoJSON.put("display_height_px", dMetrics.heightPixels);
+        } catch (final JSONException e) {
+            Log.e(LOGTAG, "Exception writing DisplayMetrics values in JSON object", e);
+        }
+        try {
+            deviceInfoJSON.put("bluetooth_version", getBluetoothVersion());
+        } catch (final JSONException e) {
+            Log.e(LOGTAG, "Exception writing bluetooth info values in JSON object", e);
+        }
+
+        refreshMutableDeviceInfo();
+    }
+
+
+    // Reload those system informations that could change and return ALL device info for convenience
+    private void refreshMutableDeviceInfo() {
+        try {
+            deviceInfoJSON.put("bluetooth_enabled", isBluetoothEnabled());
+        } catch (final JSONException e) {
+            Log.e(LOGTAG, "Exception writing bluetooth info values in JSON object", e);
+        }
+
+        try {
+            deviceInfoJSON.put("current_network_operator", getCurrentNetworkOperator());
+            deviceInfoJSON.put("phone_radio_type", getPhoneRadioType()); // NONE - GMS - CDMA - SIP
+            deviceInfoJSON.put("wifi_connected", isWifiConnected());
+        } catch (final JSONException e) {
+            Log.e(LOGTAG, "Exception writing network info values in JSON object", e);
+        }
+    }
+
+    public JSONObject getAllDeviceInfo() {
+        refreshMutableDeviceInfo();
+        return deviceInfoJSON;
     }
 
     public String getAppVersionName() { return mAppVersionName; }
@@ -162,13 +247,4 @@ import java.lang.reflect.Method;
         }
         return bluetoothVersion;
     }
-
-    private final Context mContext;
-
-    // Unchanging facts
-    private final Boolean mHasNFC;
-    private final Boolean mHasTelephony;
-    private final DisplayMetrics mDisplayMetrics;
-    private final String mAppVersionName;
-    private final Integer mAppVersionCode;
 }

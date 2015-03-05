@@ -1,27 +1,35 @@
 package org.wordpress.android.analytics;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.util.DisplayMetrics;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.wordpress.android.WordPress;
+import org.wordpress.android.util.AppLog;
+import org.wordpress.android.util.PackageUtils;
 
 import java.util.Map;
 
 public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
     public static final String LOGTAG = "AnalyticsTrackerNosara";
 
+    private static final String DOTCOM_USER = "dotcom_user";
+    private static final String JETPACK_USER = "jetpack_user";
+    private static final String MIXPANEL_NUMBER_OF_BLOGS = "number_of_blogs";
+    private static final String VERSION_CODE = "version_code";
 
-    private NosaraRestClient mRestClient;
+    private NosaraClient mNosaraClient;
 
     public AnalyticsTrackerNosara(Context ctx) {
         if (null == ctx || !checkBasicConfiguration(ctx)) {
-            mRestClient = null;
+            mNosaraClient = null;
             return;
         }
-        mRestClient = new NosaraRestClient(ctx);
+        mNosaraClient = new NosaraClient(ctx);
     }
 
 
@@ -36,6 +44,13 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
             return false;
         }
 
+        if (PackageManager.PERMISSION_GRANTED != packageManager.checkPermission("android.permission.ACCESS_NETWORK_STATE", packageName)) {
+            Log.w(LOGTAG, "Package does not have permission android.permission.ACCESS_NETWORK_STATE - Nosara Client will not work at all!");
+            Log.i(LOGTAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n" +
+                    "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />");
+            return false;
+        }
+
         return true;
     }
 
@@ -47,7 +62,7 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
 
     @Override
     public void track(AnalyticsTracker.Stat stat, Map<String, ?> properties) {
-        if (mRestClient == null) {
+        if (mNosaraClient == null) {
             return;
         }
 
@@ -128,45 +143,60 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
             return;
         }
 
-
-        try {
-            JSONObject singleEventParams = new JSONObject();
-            singleEventParams.put("_en", eventName);
-            singleEventParams.put("_ui", "16154691");
-            mRestClient.track(singleEventParams);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        mNosaraClient.track(eventName, "16154691"); // eritreocazzulati
 
         //trackNosaraDataForInstructions(instructions, properties);
     }
 
     @Override
     public void beginSession() {
-        if (mRestClient == null) {
+        if (mNosaraClient == null) {
             return;
         }
+
+        refreshMetadata();
     }
 
     @Override
     public void endSession() {
-        if (mRestClient == null) {
+        if (mNosaraClient == null) {
             return;
         }
+        mNosaraClient.flush();
     }
 
     @Override
     public void refreshMetadata() {
-        if (mRestClient == null) {
+        if (mNosaraClient == null) {
             return;
+        }
+
+        boolean connected = WordPress.hasDotComToken(WordPress.getContext());
+        boolean jetpackUser = WordPress.wpDB.hasAnyJetpackBlogs();
+        int numBlogs = WordPress.wpDB.getVisibleAccounts().size();
+        try {
+            JSONObject properties = new JSONObject();
+            properties.put(DOTCOM_USER, connected);
+            properties.put(JETPACK_USER, jetpackUser);
+            properties.put(MIXPANEL_NUMBER_OF_BLOGS, numBlogs);
+            properties.put(VERSION_CODE, PackageUtils.getVersionCode(WordPress.getContext()));
+            if (connected) {
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(WordPress.getContext());
+                String username = preferences.getString(WordPress.WPCOM_USERNAME_PREFERENCE, null);
+                properties.put("username", username);
+            }
+            mNosaraClient.registerUserProperties(properties);
+        } catch (JSONException e) {
+            AppLog.e(AppLog.T.UTILS, e);
         }
     }
 
     @Override
     public void clearAllData() {
-        if (mRestClient == null) {
+        if (mNosaraClient == null) {
             return;
         }
+        mNosaraClient.clearUserProperties();
     }
 
     @Override
