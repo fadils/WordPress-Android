@@ -39,7 +39,7 @@ import java.lang.reflect.Method;
     private final String mBrand;
     private final String mModel;
 
-    private final JSONObject deviceInfoJSON; // JSON representation of information returned from this class
+    private final JSONObject mImmutableDeviceInfoJSON;
 
     public NosaraDeviceInformation(Context context) {
         mContext = context;
@@ -97,67 +97,69 @@ import java.lang.reflect.Method;
         display.getMetrics(mDisplayMetrics);
 
         // pre-populate the JSON version with immutable info here for performance reasons
-        deviceInfoJSON = new JSONObject();
+        mImmutableDeviceInfoJSON = new JSONObject();
         try {
-            deviceInfoJSON.put("os", mOs);
-            deviceInfoJSON.put("os_version", mOSVersion);
-            deviceInfoJSON.put("manufacturer", mManufacturer);
-            deviceInfoJSON.put("brand", mBrand);
-            deviceInfoJSON.put("model", mModel);
-            deviceInfoJSON.put("app_version", getAppVersionName());
-            deviceInfoJSON.put("app_version_code", Integer.toString(getAppVersionCode()));
+            mImmutableDeviceInfoJSON.put("os", mOs);
+            mImmutableDeviceInfoJSON.put("os_version", mOSVersion);
+            mImmutableDeviceInfoJSON.put("manufacturer", mManufacturer);
+            mImmutableDeviceInfoJSON.put("brand", mBrand);
+            mImmutableDeviceInfoJSON.put("model", mModel);
+            mImmutableDeviceInfoJSON.put("app_version", getAppVersionName());
+            mImmutableDeviceInfoJSON.put("app_version_code", Integer.toString(getAppVersionCode()));
         } catch (final JSONException e) {
             Log.e(LOGTAG, "Exception writing basic device info values in JSON object", e);
         }
         try {
-            deviceInfoJSON.put("has_NFC", hasNFC());
+            mImmutableDeviceInfoJSON.put("has_NFC", hasNFC());
         } catch (final JSONException e) {
             Log.e(LOGTAG, "Exception writing has_NFS value in JSON object", e);
         }
         try {
-            deviceInfoJSON.put("has_telephony", hasTelephony());
+            mImmutableDeviceInfoJSON.put("has_telephony", hasTelephony());
         } catch (final JSONException e) {
             Log.e(LOGTAG, "Exception writing has_telephony value in JSON object", e);
         }
         try {
             DisplayMetrics dMetrics = getDisplayMetrics();
-            deviceInfoJSON.put("display_density_dpi", dMetrics.densityDpi);
-            deviceInfoJSON.put("display_width_px", dMetrics.widthPixels);
-            deviceInfoJSON.put("display_height_px", dMetrics.heightPixels);
+            mImmutableDeviceInfoJSON.put("display_density_dpi", dMetrics.densityDpi);
+            mImmutableDeviceInfoJSON.put("display_width_px", dMetrics.widthPixels);
+            mImmutableDeviceInfoJSON.put("display_height_px", dMetrics.heightPixels);
         } catch (final JSONException e) {
             Log.e(LOGTAG, "Exception writing DisplayMetrics values in JSON object", e);
         }
         try {
-            deviceInfoJSON.put("bluetooth_version", getBluetoothVersion());
+            mImmutableDeviceInfoJSON.put("bluetooth_version", getBluetoothVersion());
         } catch (final JSONException e) {
             Log.e(LOGTAG, "Exception writing bluetooth info values in JSON object", e);
         }
-
-        refreshMutableDeviceInfo();
     }
 
 
-    // Reload those system informations that could change and return ALL device info for convenience
-    private void refreshMutableDeviceInfo() {
+    // Returns those system info that could change upon time.
+    public JSONObject getMutableDeviceInfo() {
+        JSONObject mutableDeviceInfo = new JSONObject();
         try {
-            deviceInfoJSON.put("bluetooth_enabled", isBluetoothEnabled());
+            mutableDeviceInfo.put("bluetooth_enabled", isBluetoothEnabled());
         } catch (final JSONException e) {
             Log.e(LOGTAG, "Exception writing bluetooth info values in JSON object", e);
         }
 
         try {
-            deviceInfoJSON.put("current_network_operator", getCurrentNetworkOperator());
-            deviceInfoJSON.put("phone_radio_type", getPhoneRadioType()); // NONE - GMS - CDMA - SIP
-            deviceInfoJSON.put("wifi_connected", isWifiConnected());
+            mutableDeviceInfo.put("current_network_operator", getCurrentNetworkOperator());
+            mutableDeviceInfo.put("phone_radio_type", getPhoneRadioType()); // NONE - GMS - CDMA - SIP
+            mutableDeviceInfo.put("wifi_connected", isWifiConnected());
         } catch (final JSONException e) {
             Log.e(LOGTAG, "Exception writing network info values in JSON object", e);
         }
+
+        return mutableDeviceInfo;
     }
 
-    public JSONObject getAllDeviceInfo() {
-        refreshMutableDeviceInfo();
-        return deviceInfoJSON;
+    public JSONObject getImmutableDeviceInfo() {
+        return mImmutableDeviceInfoJSON;
     }
+
+
 
     public String getAppVersionName() { return mAppVersionName; }
 

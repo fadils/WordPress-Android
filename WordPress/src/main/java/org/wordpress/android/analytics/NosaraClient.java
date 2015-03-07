@@ -17,6 +17,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 
 public class NosaraClient {
@@ -25,6 +26,8 @@ public class NosaraClient {
     public static final String LIB_VERSION = "0.0.1";
     protected static final String DEFAULT_USER_AGENT = "Nosara Client for Android";
     protected static final String NOSARA_REST_API_ENDPOINT_URL_V1_1 = "https://public-api.wordpress.com/rest/v1.1/";
+
+    public static enum NosaraUserType {ANON, WPCOM }
 
     /**
      * Socket timeout in milliseconds for rest requests
@@ -105,24 +108,28 @@ public class NosaraClient {
         synchronized (mMainEventsQueue) {
             try {
                 JSONArray events = new JSONArray();
-                LinkedList<NosaraEvent> currentEventsList = new LinkedList(); // events we're sending on the wire
+                LinkedList<NosaraEvent> currentEventsList = new LinkedList<>(); // events we're sending on the wire
                 for (NosaraEvent singleEvent : mMainEventsQueue) {
-                    JSONObject singleEventJSON = singleEvent.getJSONObject();
+                    JSONObject singleEventJSON = NosaraMessageBuilder.getJSONObject(singleEvent);
                     if (singleEventJSON != null) {
                         events.put(singleEventJSON);
                         currentEventsList.add(singleEvent);
                     }
                 }
 
+                if (mUserProperties != null && mUserProperties.length() > 0) {
+                    // Add to commonProps as well
+                }
+
                 if (currentEventsList.size() > 0) {
                     JSONObject requestJSONObject = new JSONObject();
                     requestJSONObject.put("events", events);
-                    //JSONObject commonProps = new JSONObject();
-                    //commonProps.put("device_info", deviceInformation.getAllDeviceInfo());
-                    //if (mUserProperties != null) {
-                    //    commonProps.put("user_info", mUserProperties);
-                    //}
-                    //requestJSONObject.put("commonProps", commonProps);
+
+                    // Add here common props. ex: Device Info that are unlikely to change over time.
+                    JSONObject commonProps = new JSONObject();
+                    NosaraMessageBuilder.unfolderProperties(deviceInformation.getImmutableDeviceInfo(), "device_info_", commonProps);
+                    requestJSONObject.put("commonProps", commonProps);
+
                     String path = "tracks/record";
                     NosaraRestListener nosaraRestListener = new NosaraRestListener(currentEventsList);
                     NosaraRestRequest request = post(path, requestJSONObject, nosaraRestListener, nosaraRestListener);
@@ -137,7 +144,6 @@ public class NosaraClient {
         }
     }
 
-
     /*
     public NosaraClient(Context ctx, String endpointURL) {
         this(ctx);
@@ -145,16 +151,17 @@ public class NosaraClient {
     }
 */
 
-    public void track(String eventName, String userID) {
+    public void track(String eventName, String user, NosaraUserType userType) {
         NosaraEvent event = new NosaraEvent(
                 eventName,
-                userID,
+                user,
+                userType,
                 getUserAgent(),
                 System.currentTimeMillis()
         );
 
-        // Need to attach properties here, since device state can change, and we want to monitor changes.
-        JSONObject deviceInfo = deviceInformation.getAllDeviceInfo();
+
+        JSONObject deviceInfo = deviceInformation.getMutableDeviceInfo();
         if (deviceInfo != null && deviceInfo.length() > 0) {
             event.setDeviceInfo(deviceInfo);
         }

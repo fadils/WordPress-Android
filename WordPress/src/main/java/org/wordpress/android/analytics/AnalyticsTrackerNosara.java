@@ -10,9 +10,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.wordpress.android.WordPress;
 import org.wordpress.android.util.AppLog;
-import org.wordpress.android.util.PackageUtils;
 
 import java.util.Map;
+import java.util.UUID;
 
 public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
     public static final String LOGTAG = "AnalyticsTrackerNosara";
@@ -23,6 +23,8 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
 
     private static final String EVENTS_PREFIX = "wpandroid_";
 
+    private String mAnonID = null;
+    private String mWpcomUserName = null;
 
     private NosaraClient mNosaraClient;
 
@@ -141,13 +143,17 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
                 break;
         }
 
+        /*
         if (eventName == null) {
             return;
         }
+*/
+        String user = mAnonID != null ? mAnonID : mWpcomUserName;
+        NosaraClient.NosaraUserType userType = mAnonID != null ?
+                NosaraClient.NosaraUserType.ANON :
+                NosaraClient.NosaraUserType.WPCOM;
 
-        mNosaraClient.track(EVENTS_PREFIX + eventName, "16154691"); // eritreocazzulati
-
-        //trackNosaraDataForInstructions(instructions, properties);
+        mNosaraClient.track(EVENTS_PREFIX + "danilotest", user, userType);
     }
 
     @Override
@@ -157,6 +163,18 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
         }
 
         refreshMetadata();
+    }
+
+    private String getNewAnonID() {
+        String uuid = UUID.randomUUID().toString();
+        String[] uuidSplitted = uuid.split("-");
+        StringBuilder builder = new StringBuilder();
+        for(String currentPart : uuidSplitted) {
+            builder.append(currentPart);
+        }
+        uuid = builder.toString();
+        Log.d(LOGTAG, "anon UUID generato " + uuid);
+        return uuid;
     }
 
     @Override
@@ -174,18 +192,32 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
         }
 
         boolean connected = WordPress.hasDotComToken(WordPress.getContext());
+        if (connected) {
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(WordPress.getContext());
+            String username = preferences.getString(WordPress.WPCOM_USERNAME_PREFERENCE, null);
+            // properties.put("username", username);
+            mWpcomUserName = username;
+
+            // should we re-unify the user?
+            if (mAnonID != null) {
+                // TODO call the _aliasUser event here!!!
+
+                mAnonID = null;
+            }
+        } else {
+            // Not wpcom connected. Check if mAnon is already present
+            mWpcomUserName = null;
+            if (mAnonID == null) {
+                mAnonID = getNewAnonID();
+            }
+        }
+
         boolean jetpackUser = WordPress.wpDB.hasAnyJetpackBlogs();
         int numBlogs = WordPress.wpDB.getVisibleAccounts().size();
         try {
             JSONObject properties = new JSONObject();
-            properties.put(DOTCOM_USER, connected);
             properties.put(JETPACK_USER, jetpackUser);
             properties.put(MIXPANEL_NUMBER_OF_BLOGS, numBlogs);
-            if (connected) {
-                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(WordPress.getContext());
-                String username = preferences.getString(WordPress.WPCOM_USERNAME_PREFERENCE, null);
-                properties.put("username", username);
-            }
             mNosaraClient.registerUserProperties(properties);
         } catch (JSONException e) {
             AppLog.e(AppLog.T.UTILS, e);
@@ -198,6 +230,10 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
             return;
         }
         mNosaraClient.clearUserProperties();
+
+        // Reset the anon token here
+        mAnonID = null;
+        mWpcomUserName = null;
     }
 
     @Override
