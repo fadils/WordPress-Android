@@ -64,6 +64,28 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/featuredImageLabel"
+                style="@style/WordPressSubHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:text="@string/categories" />
+
+            <Button
+                android:id="@+id/addFeaturedImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/add_featured_image"
+                android:paddingLeft="@dimen/margin_medium" />
+
+            <ImageView
+                android:id="@+id/featuredImageView"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:paddingLeft="@dimen/margin_medium" />
+
+
+            <TextView
                 android:id="@+id/categoryLabel"
                 style="@style/WordPressSubHeader"
                 android:layout_width="wrap_content"
