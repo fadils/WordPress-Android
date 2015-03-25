@@ -32,7 +32,6 @@ import android.text.TextWatcher;
 import android.text.method.ArrowKeyMovementMethod;
 import android.text.style.AlignmentSpan;
 import android.text.style.CharacterStyle;
-import android.text.style.ImageSpan;
 import android.text.style.QuoteSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.StyleSpan;
@@ -54,7 +53,6 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -105,11 +103,8 @@ import org.wordpress.passcodelock.AppLockManager;
 import org.xmlrpc.android.ApiHelper;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -119,6 +114,7 @@ import java.util.Vector;
 public class EditPostContentFragment extends Fragment implements TextWatcher,
         WPEditText.OnSelectionChangedListener, View.OnTouchListener {
     EditPostActivity mActivity;
+    private EditPostSettingsFragment mEditPostSettingsFragment;
 
     private static final int ACTIVITY_REQUEST_CODE_CREATE_LINK = 4;
     public static final String NEW_MEDIA_GALLERY = "NEW_MEDIA_GALLERY";
@@ -126,14 +122,14 @@ public class EditPostContentFragment extends Fragment implements TextWatcher,
     public static final String NEW_MEDIA_POST = "NEW_MEDIA_POST";
     public static final String NEW_MEDIA_POST_EXTRA = "NEW_MEDIA_POST_ID";
 
+    public static final String ANALYTIC_PROP_NUM_LOCAL_PHOTOS_ADDED = "number_of_local_photos_added";
+    public static final String ANALYTIC_PROP_NUM_WP_PHOTOS_ADDED = "number_of_wp_library_photos_added";
+
     private static final String TAG_FORMAT_BAR_BUTTON_STRONG = "strong";
     private static final String TAG_FORMAT_BAR_BUTTON_EM = "em";
     private static final String TAG_FORMAT_BAR_BUTTON_UNDERLINE = "u";
     private static final String TAG_FORMAT_BAR_BUTTON_STRIKE = "strike";
     private static final String TAG_FORMAT_BAR_BUTTON_QUOTE = "blockquote";
-
-    private static final String ANALYTIC_PROP_NUM_LOCAL_PHOTOS_ADDED = "number_of_local_photos_added";
-    private static final String ANALYTIC_PROP_NUM_WP_PHOTOS_ADDED = "number_of_wp_library_photos_added";
 
     private static final int CONTENT_ANIMATION_DURATION = 250;
     private static final int MIN_THUMBNAIL_WIDTH = 200;
@@ -161,9 +157,12 @@ public class EditPostContentFragment extends Fragment implements TextWatcher,
 
     private float mLastYPos = 0;
 
+    private MediaFile mFeaturedImage;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         mActivity = (EditPostActivity) getActivity();
+        mEditPostSettingsFragment = mActivity.getEditPostSettingsFragment();
 
         final ViewGroup rootView = (ViewGroup) inflater.inflate(R.layout.fragment_edit_post_content, container, false);
 
@@ -1286,8 +1285,9 @@ public class EditPostContentFragment extends Fragment implements TextWatcher,
             caption.setText(mediaFile.getCaption());
             featuredCheckBox.setChecked(mediaFile.isFeatured());
 
-            if (mediaFile.isFeatured())
+            if (mediaFile.isFeatured()) {
                 featuredInPostCheckBox.setVisibility(View.VISIBLE);
+            }
             else
                 featuredInPostCheckBox.setVisibility(View.GONE);
 
@@ -1354,6 +1354,7 @@ public class EditPostContentFragment extends Fragment implements TextWatcher,
                             mediaFile.setCaption(captionText);
                             mediaFile.setFeatured(featuredCheckBox.isChecked());
                             if (featuredCheckBox.isChecked()) {
+                                setFeaturedImage(mediaFile);
                                 // remove featured flag from all other images
                                 Spannable contentSpannable = mContentEditText.getText();
                                 WPImageSpan[] postImageSpans = contentSpannable.getSpans(0, contentSpannable.length(), WPImageSpan.class);
@@ -1924,5 +1925,21 @@ public class EditPostContentFragment extends Fragment implements TextWatcher,
                 mContentEditText.setText(spanned);
             }
         }
+    }
+
+    public int getBlogMediaStatus() {
+        return mBlogMediaStatus;
+    }
+
+    public MediaFile getFeaturedImage() {
+        return mFeaturedImage;
+    }
+
+    public void setFeaturedImage(MediaFile mFeaturedImage) {
+        this.mFeaturedImage = mFeaturedImage;
+    }
+
+    public boolean hasFeaturedImage() {
+        return mFeaturedImage != null;
     }
 }

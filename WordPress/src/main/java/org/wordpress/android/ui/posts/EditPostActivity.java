@@ -491,4 +491,12 @@ public class EditPostActivity extends ActionBarActivity {
     public boolean isEditingPostContent() {
         return (mViewPager.getCurrentItem() == PAGE_CONTENT);
     }
+
+    public EditPostContentFragment getEditPostContentFragment() {
+        return mEditPostContentFragment;
+    }
+
+    public EditPostSettingsFragment getEditPostSettingsFragment() {
+        return mEditPostSettingsFragment;
+    }
 }

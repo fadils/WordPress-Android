@@ -5,7 +5,7 @@
     android:background="@color/white">
 
     <LinearLayout
-        android:layout_width="fill_parent"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="@dimen/margin_small">
@@ -59,7 +59,7 @@
 
         <LinearLayout
             android:id="@+id/sectionTags"
-            android:layout_width="fill_parent"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
@@ -72,17 +72,34 @@
                 android:text="@string/categories" />
 
             <Button
-                android:id="@+id/addFeaturedImage"
-                android:layout_width="wrap_content"
+                android:id="@+id/setFeaturedImageButton"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/add_featured_image"
-                android:paddingLeft="@dimen/margin_medium" />
+                android:text="@string/set_featured_image"
+                android:layout_marginLeft="@dimen/margin_medium"
+                android:layout_marginRight="@dimen/margin_medium"
+                android:paddingLeft="@dimen/margin_medium"
+                android:paddingRight="@dimen/margin_medium"
+                android:visibility="gone"/>
 
-            <ImageView
+            <Button
+                android:id="@+id/removeFeaturedImageButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/remove_featured_image"
+                android:layout_marginLeft="@dimen/margin_medium"
+                android:layout_marginRight="@dimen/margin_medium"
+                android:paddingLeft="@dimen/margin_medium"
+                android:paddingRight="@dimen/margin_medium"
+                android:visibility="gone"/>
+
+
+            <com.android.volley.toolbox.NetworkImageView
                 android:id="@+id/featuredImageView"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent"
-                android:paddingLeft="@dimen/margin_medium" />
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="@dimen/margin_medium"
+                android:visibility="gone"/>
 
 
             <TextView
@@ -95,13 +112,13 @@
 
             <org.wordpress.android.widgets.FlowLayout
                 android:id="@+id/sectionCategories"
-                android:layout_width="fill_parent"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingLeft="@dimen/margin_medium" />
 
             <EditText
                 android:id="@+id/tags"
-                android:layout_width="fill_parent"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="@dimen/margin_medium"
                 android:layout_marginRight="@dimen/margin_medium"
@@ -113,7 +130,7 @@
 
         <EditText
             android:id="@+id/postExcerpt"
-            android:layout_width="fill_parent"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="@dimen/margin_medium"
             android:layout_marginRight="@dimen/margin_medium"
@@ -126,7 +143,7 @@
 
         <EditText
             android:id="@+id/post_password"
-            android:layout_width="fill_parent"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="@dimen/margin_medium"
             android:layout_marginRight="@dimen/margin_medium"
@@ -138,8 +155,8 @@
 
         <ViewStub
             android:id="@+id/stub_post_location_settings"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:layout="@layout/post_location_settings" />
     </LinearLayout>
 </ScrollView>
