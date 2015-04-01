@@ -93,14 +93,21 @@
                 android:paddingRight="@dimen/margin_medium"
                 android:visibility="gone"/>
 
-
             <com.android.volley.toolbox.NetworkImageView
                 android:id="@+id/featuredImageView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:minWidth="@dimen/featured_image_width_default"
+                android:minHeight="@dimen/featured_image_height_default"
                 android:padding="@dimen/margin_medium"
                 android:visibility="gone"/>
 
+            <ImageView
+                android:id="@+id/featuredImageViewLocal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="@dimen/margin_medium"
+                android:visibility="gone"/>
 
             <TextView
                 android:id="@+id/categoryLabel"

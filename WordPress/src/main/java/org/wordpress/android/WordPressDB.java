@@ -10,6 +10,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Base64;
+import android.util.Log;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.json.JSONArray;
@@ -152,6 +153,9 @@ public class WordPressDB {
     // add admin flag to blog settings
     private static final String ADD_ACCOUNTS_ADMIN_FLAG = "alter table accounts add isAdmin boolean default false;";
 
+    // add featured image to post
+    private static final String ADD_FEATURED_IMAGE = "alter table posts add featuredImage text default '';";
+
     // add thumbnailURL, thumbnailPath and fileURL to media
     private static final String ADD_MEDIA_THUMBNAIL_URL = "alter table media add thumbnailURL text default '';";
     private static final String ADD_MEDIA_FILE_URL = "alter table media add fileURL text default '';";
@@ -277,6 +281,10 @@ public class WordPressDB {
             case 28:
                 // Remove WordPress.com credentials
                 removeDotComCredentials();
+                currentVersion++;
+            case 29:
+                Log.i("database", "updated");
+                db.execSQL(ADD_FEATURED_IMAGE);
                 currentVersion++;
         }
 
@@ -879,6 +887,7 @@ public class WordPressDB {
                     values.put("wp_author_display_name", MapUtils.getMapStr(postMap, "wp_author_display_name"));
                     values.put("post_status", MapUtils.getMapStr(postMap, (isPage) ? "page_status" : "post_status"));
                     values.put("userid", MapUtils.getMapStr(postMap, "userid"));
+                    values.put("featuredImage", MapUtils.getMapStr(postMap, "featuredImage"));
 
                     if (isPage) {
                         values.put("isPage", true);
@@ -976,6 +985,9 @@ public class WordPressDB {
             putPostLocation(post, values);
             values.put("isLocalChange", post.isLocalChange());
             values.put("mt_excerpt", post.getPostExcerpt());
+            values.put("featuredImage", post.getFeaturedImage());
+
+            Log.i("database", "post saved");
 
             result = db.insert(POSTS_TABLE, null, values);
 
@@ -1012,6 +1024,7 @@ public class WordPressDB {
             values.put("wp_post_format", post.getPostFormat());
             values.put("isLocalChange", post.isLocalChange());
             values.put("mt_excerpt", post.getPostExcerpt());
+            values.put("featuredImage", post.getFeaturedImage());
             putPostLocation(post, values);
 
             result = db.update(POSTS_TABLE, values, "blogID=? AND id=? AND isPage=?",
@@ -1020,6 +1033,9 @@ public class WordPressDB {
                         String.valueOf(post.getLocalTablePostId()),
                         String.valueOf(SqlUtils.boolToSql(post.isPage()))
                     });
+
+            Log.i("database", "post updated");
+
         }
 
         return (result);
@@ -1106,6 +1122,7 @@ public class WordPressDB {
                 post.setAllowComments(SqlUtils.sqlToBool(c.getInt(c.getColumnIndex("mt_allow_comments"))));
                 post.setAllowPings(SqlUtils.sqlToBool(c.getInt(c.getColumnIndex("mt_allow_pings"))));
                 post.setPostExcerpt(c.getString(c.getColumnIndex("mt_excerpt")));
+                post.setFeaturedImage(c.getString(c.getColumnIndex("featuredImage")));
                 post.setKeywords(c.getString(c.getColumnIndex("mt_keywords")));
                 post.setMoreText(c.getString(c.getColumnIndex("mt_text_more")));
                 post.setPermaLink(c.getString(c.getColumnIndex("permaLink")));

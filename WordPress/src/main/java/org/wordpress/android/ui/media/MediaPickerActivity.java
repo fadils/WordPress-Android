@@ -19,6 +19,7 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.android.volley.toolbox.ImageLoader;
 
@@ -84,6 +85,8 @@ public class MediaPickerActivity extends ActionBarActivity
 
     private static final String CAPTURE_PATH_KEY = "capture-path";
 
+    private static boolean setFeaturedImage = false;
+
     private static final long   TAB_ANIMATION_DURATION_MS = 250l;
 
     private MediaPickerAdapter     mMediaPickerAdapter;
@@ -97,6 +100,10 @@ public class MediaPickerActivity extends ActionBarActivity
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        if (getIntent().hasExtra(ACTIVITY_TITLE_KEY) &&
+                getIntent().getStringExtra(ACTIVITY_TITLE_KEY).contains("featured")) {
+            setFeaturedImage = true;
+        }
         lockRotation();
         addMediaSources();
         setTitle();
@@ -106,7 +113,11 @@ public class MediaPickerActivity extends ActionBarActivity
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.media_picker, menu);
+        if (setFeaturedImage) {
+            inflater.inflate(R.menu.featured_image_picker, menu);
+        } else {
+            inflater.inflate(R.menu.media_picker, menu);
+        }
 
         return true;
     }
@@ -245,7 +256,11 @@ public class MediaPickerActivity extends ActionBarActivity
 
     @Override
     public void onGalleryCreated(ArrayList<MediaItem> mediaContent) {
-        finishWithResults(mediaContent, ACTIVITY_RESULT_CODE_GALLERY_CREATED);
+        if (!setFeaturedImage) {
+            finishWithResults(mediaContent, ACTIVITY_RESULT_CODE_GALLERY_CREATED);
+        } else {
+            Toast.makeText(this, R.string.one_featured_image, Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -359,9 +374,11 @@ public class MediaPickerActivity extends ActionBarActivity
             mViewPager.setPagingEnabled(true);
 
             mMediaPickerAdapter.addTab(mMediaSources[0] != null ? mMediaSources[0] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_device_images));
-            mMediaPickerAdapter.addTab(mMediaSources[1] != null ? mMediaSources[1] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_device_videos));
-            mMediaPickerAdapter.addTab(mMediaSources[2] != null ? mMediaSources[2] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_site_images));
-            mMediaPickerAdapter.addTab(mMediaSources[3] != null ? mMediaSources[3] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_site_videos));
+            if (!setFeaturedImage) {
+                mMediaPickerAdapter.addTab(mMediaSources[1] != null ? mMediaSources[1] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_device_videos));
+                mMediaPickerAdapter.addTab(mMediaSources[2] != null ? mMediaSources[2] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_site_images));
+                mMediaPickerAdapter.addTab(mMediaSources[3] != null ? mMediaSources[3] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_site_videos));
+            }
 
             mViewPager.setAdapter(mMediaPickerAdapter);
 

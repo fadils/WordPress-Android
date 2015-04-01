@@ -3,9 +3,11 @@ package org.wordpress.android.ui.posts;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.location.Address;
 import android.location.Location;
@@ -19,7 +21,6 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -34,6 +35,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
@@ -55,6 +57,7 @@ import org.wordpress.android.models.PostStatus;
 import org.wordpress.android.ui.media.MediaPickerActivity;
 import org.wordpress.android.ui.media.MediaSourceWPImages;
 import org.wordpress.android.ui.media.MediaUtils;
+import org.wordpress.android.ui.posts.actions.PostActions;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.DisplayUtils;
@@ -63,6 +66,7 @@ import org.wordpress.android.util.GeocoderUtils;
 import org.wordpress.android.util.ImageUtils;
 import org.wordpress.android.util.JSONUtil;
 import org.wordpress.android.util.LocationHelper;
+import org.wordpress.android.widgets.WPImageSpan;
 import org.wordpress.mediapicker.MediaItem;
 import org.wordpress.mediapicker.source.MediaSource;
 import org.wordpress.mediapicker.source.MediaSourceDeviceImages;
@@ -79,15 +83,18 @@ import java.util.Map;
 import java.util.Vector;
 
 public class EditPostSettingsFragment extends Fragment
-        implements View.OnClickListener, TextView.OnEditorActionListener {
-    private static final int MIN_THUMBNAIL_WIDTH = 200;
+        implements View.OnClickListener, TextView.OnEditorActionListener, Updateable {
     private static final int ACTIVITY_REQUEST_CODE_SELECT_CATEGORIES = 5;
 
     private static final String CATEGORY_PREFIX_TAG = "category-";
 
     private EditPostActivity mActivity;
     private EditPostContentFragment mEditPostContentFragment;
-    private MediaFile mFeaturedImage;
+    
+    private Post mPost;
+
+    // Featured Image
+    private String mFeaturedImageURL;
 
     private Spinner mStatusSpinner, mPostFormatSpinner;
     private EditText mPasswordEditText, mTagsEditText, mExcerptEditText;
@@ -96,6 +103,7 @@ public class EditPostSettingsFragment extends Fragment
     private Button mSetFeaturedImageButton;
     private Button mRemoveFeaturedImageButton;
     private NetworkImageView mFeaturedImageView;
+    private ImageView mFeaturedImageViewLocal;
 
     private ArrayList<String> mCategories;
 
@@ -113,6 +121,16 @@ public class EditPostSettingsFragment extends Fragment
 
     private static enum LocationStatus {NONE, FOUND, NOT_FOUND, SEARCHING}
 
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        mActivity = (EditPostActivity) activity;
+        mEditPostContentFragment = mActivity.getEditPostContentFragment();
+        mPost = mActivity.getPost();
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -129,9 +147,6 @@ public class EditPostSettingsFragment extends Fragment
 
         if (rootView == null)
             return null;
-
-        mActivity = (EditPostActivity) getActivity();
-        mEditPostContentFragment = mActivity.getEditPostContentFragment();
 
         mExcerptEditText = (EditText) rootView.findViewById(R.id.postExcerpt);
         mPasswordEditText = (EditText) rootView.findViewById(R.id.post_password);
@@ -164,27 +179,16 @@ public class EditPostSettingsFragment extends Fragment
             @Override
             public void onClick(View v) {
                 mFeaturedImageView.setVisibility(View.GONE);
+                mFeaturedImageViewLocal.setVisibility(View.GONE);
                 mRemoveFeaturedImageButton.setVisibility(View.GONE);
                 mSetFeaturedImageButton.setVisibility(View.VISIBLE);
+                PostActions.removeFeaturedImageInSettings(mPost);
             }
         });
 
         mFeaturedImageView = (NetworkImageView) rootView.findViewById(R.id.featuredImageView);
-        if (mEditPostContentFragment.hasFeaturedImage()) {
-            if (mEditPostContentFragment.getFeaturedImage().getFileURL().contains("wordpress.com")) {
-                Log.i("featuredImage", "called");
-                mFeaturedImageView.setImageUrl(
-                        mEditPostContentFragment.getFeaturedImage().getFileURL(),
-                        WordPress.imageLoader);
-            } else {
-                Log.i("featuredImage", "called 2");
-                Bitmap featuredImageBitmap = ImageUtils.
-                        getWPImageSpanThumbnailFromFilePath(mActivity,
-                                mEditPostContentFragment.getFeaturedImage().getFilePath(),
-                                maxFeaturedImageThumbnailWidth());
-                mFeaturedImageView.setImageBitmap(featuredImageBitmap);
-            }
-        }
+        mFeaturedImageView.setDefaultImageResId(R.drawable.media_image_placeholder);
+        mFeaturedImageViewLocal = (ImageView) rootView.findViewById(R.id.featuredImageViewLocal);
 
         if (WordPress.getCurrentBlog().isFeaturedImageCapable()) {
             mSetFeaturedImageButton.setVisibility(View.VISIBLE);
@@ -199,7 +203,7 @@ public class EditPostSettingsFragment extends Fragment
         ((TextView) rootView.findViewById(R.id.postFormatLabel)).setText(getResources().getString(R.string.post_format).toUpperCase());
         ((TextView) rootView.findViewById(R.id.pubDateLabel)).setText(getResources().getString(R.string.publish_date).toUpperCase());
 
-        if (mActivity.getPost().isPage()) { // remove post specific views
+        if (mPost.isPage()) { // remove post specific views
             mExcerptEditText.setVisibility(View.GONE);
             (rootView.findViewById(R.id.sectionTags)).setVisibility(View.GONE);
             (rootView.findViewById(R.id.sectionCategories)).setVisibility(View.GONE);
@@ -242,8 +246,8 @@ public class EditPostSettingsFragment extends Fragment
             String activePostFormat = "standard";
 
 
-            if (!TextUtils.isEmpty(mActivity.getPost().getPostFormat())) {
-                activePostFormat = mActivity.getPost().getPostFormat();
+            if (!TextUtils.isEmpty(mPost.getPostFormat())) {
+                activePostFormat = mPost.getPostFormat();
             }
 
             for (int i = 0; i < mPostFormats.length; i++) {
@@ -261,7 +265,7 @@ public class EditPostSettingsFragment extends Fragment
             );
         }
 
-        Post post = mActivity.getPost();
+        Post post = mPost;
         if (post != null) {
             mExcerptEditText.setText(post.getPostExcerpt());
 
@@ -335,6 +339,10 @@ public class EditPostSettingsFragment extends Fragment
             String tags = post.getKeywords();
             if (!tags.equals("")) {
                 mTagsEditText.setText(tags);
+            }
+
+            if (mPost.getFeaturedImage() != null) {
+                setFeaturedImage(mPost.getFeaturedImage());
             }
 
             populateSelectedCategories();
@@ -509,7 +517,7 @@ public class EditPostSettingsFragment extends Fragment
      * Updates post object with content of this fragment
      */
     public void updatePostSettings() {
-        Post post = mActivity.getPost();
+        Post post = mPost;
         if (post == null)
             return;
 
@@ -554,6 +562,7 @@ public class EditPostSettingsFragment extends Fragment
             post.setLocation(mPostLocation);
         }
 
+        post.setFeaturedImage(mFeaturedImageURL);
         post.setPostExcerpt(excerpt);
         post.setDate_created_gmt(pubDateTimestamp);
         post.setJSONCategories(new JSONArray(mCategories));
@@ -689,7 +698,7 @@ public class EditPostSettingsFragment extends Fragment
      * to location if enabled for this blog, and retrieve the current location if necessary
      */
     private void initLocation(ViewGroup rootView) {
-        Post post = mActivity.getPost();
+        Post post = mPost;
 
         // show the location views if a provider was found and this is a post on a blog that has location enabled
         if (hasLocationProvider() && post.supportsLocation()) {
@@ -818,7 +827,7 @@ public class EditPostSettingsFragment extends Fragment
 
     private void removeLocation() {
         mPostLocation = null;
-        mActivity.getPost().unsetLocation();
+        mPost.unsetLocation();
 
         updateLocationText("");
         setLocationStatus(LocationStatus.NONE);
@@ -946,7 +955,7 @@ public class EditPostSettingsFragment extends Fragment
      */
     private void startMediaSelection() {
         Intent intent = new Intent(mActivity, MediaPickerActivity.class);
-        intent.putExtra(MediaPickerActivity.ACTIVITY_TITLE_KEY, getString(R.string.add_to_post));
+        intent.putExtra(MediaPickerActivity.ACTIVITY_TITLE_KEY, getString(R.string.set_featured_image));
         intent.putParcelableArrayListExtra(MediaPickerActivity.DEVICE_IMAGE_MEDIA_SOURCES_KEY, imageMediaSelectionSources());
         if (mEditPostContentFragment.getBlogMediaStatus() != 0) {
             intent.putParcelableArrayListExtra(MediaPickerActivity.BLOG_IMAGE_MEDIA_SOURCES_KEY, blogImageMediaSelectionSources());
@@ -990,23 +999,21 @@ public class EditPostSettingsFragment extends Fragment
             if (selectedContent != null && selectedContent.size() > 0) {
                 mSetFeaturedImageButton.setVisibility(View.GONE);
                 mRemoveFeaturedImageButton.setVisibility(View.VISIBLE);
-                mFeaturedImageView.setVisibility(View.VISIBLE);
 
                 Integer localMediaAdded = 0;
                 Integer libraryMediaAdded = 0;
 
                 for (MediaItem media : selectedContent) {
                     if (media.getSource().toString().contains("wordpress.com")) {
-                        mFeaturedImageView.setImageUrl(media.getSource().toString(), WordPress.imageLoader);
+                        mFeaturedImageView.setVisibility(View.VISIBLE);
+                        mFeaturedImageViewLocal.setVisibility(View.GONE);
+                        mFeaturedImageView.setImageUrl(mFeaturedImageURL, WordPress.imageLoader);
+                        mPost.setFeaturedImage(mFeaturedImageURL);
                         ++libraryMediaAdded;
                     } else {
-                        Bitmap featuredImageBitmap = ImageUtils.
-                                getWPImageSpanThumbnailFromFilePath(mActivity,
-                                        media.getSource().getEncodedPath(),
-                                        maxFeaturedImageThumbnailWidth());
-                        Log.i("BitMap: ", Integer.toString(featuredImageBitmap.getWidth()));
-                        Log.i("BitMap: ", Integer.toString(featuredImageBitmap.getHeight()));
-                        mFeaturedImageView.setImageBitmap(featuredImageBitmap);
+                        mFeaturedImageView.setVisibility(View.GONE);
+                        mFeaturedImageViewLocal.setVisibility(View.VISIBLE);
+                        addLocalMedia(media.getSource(), mActivity);
                         ++localMediaAdded;
                     }
                 }
@@ -1044,5 +1051,83 @@ public class EditPostSettingsFragment extends Fragment
         }
 
         return mFeaturedImageThumbnailWidth;
+    }
+
+    public void setFeaturedImage(String imageURL) {
+        mFeaturedImageURL = imageURL;
+        if (!mActivity.getSupportActionBar().isShowing()) {
+            mActivity.getSupportActionBar().show();
+        }
+        mActivity.mSectionsPagerAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void updateFragment() {
+        mSetFeaturedImageButton.setVisibility(View.GONE);
+        mRemoveFeaturedImageButton.setVisibility(View.VISIBLE);
+
+        if (mFeaturedImageURL.contains("wordpress.com")) {
+            mFeaturedImageView.setVisibility(View.VISIBLE);
+            mFeaturedImageViewLocal.setVisibility(View.GONE);
+            mFeaturedImageView.setImageUrl(
+                    mFeaturedImageURL,
+                    WordPress.imageLoader);
+        } else {
+            mFeaturedImageView.setVisibility(View.GONE);
+            mFeaturedImageViewLocal.setVisibility(View.VISIBLE);
+            Bitmap featuredImageBitmap = ImageUtils.
+                    getWPImageSpanThumbnailFromFilePath(mActivity,
+                            Uri.parse(mFeaturedImageURL).getEncodedPath(),
+                            maxFeaturedImageThumbnailWidth());
+            mFeaturedImageViewLocal.setImageBitmap(featuredImageBitmap);
+        }
+    }
+
+    private boolean addLocalMedia(Uri imageUri, Context context) {
+        if (context == null) {
+            return false;
+        }
+
+        if (imageUri == null) {
+            return false;
+        }
+
+        Bitmap thumbnailBitmap;
+        String mediaTitle;
+        if (MediaUtils.isVideo(imageUri.toString())) {
+            thumbnailBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.media_movieclip);
+            mediaTitle = getResources().getString(R.string.video);
+        } else {
+            thumbnailBitmap = ImageUtils.getWPImageSpanThumbnailFromFilePath(context, imageUri.getEncodedPath(),
+                    maxFeaturedImageThumbnailWidth());
+            if (thumbnailBitmap == null) {
+                return false;
+            }
+            mFeaturedImageViewLocal.setImageBitmap(thumbnailBitmap);
+            mFeaturedImageURL = imageUri.getEncodedPath();
+            mediaTitle = ImageUtils.getTitleForWPImageSpan(context, imageUri.getEncodedPath());
+        }
+
+        WPImageSpan imageSpan = new WPImageSpan(context, thumbnailBitmap, imageUri);
+        MediaFile mediaFile = imageSpan.getMediaFile();
+        mediaFile.setPostID(mPost.getLocalTablePostId());
+        mediaFile.setTitle(mediaTitle);
+        mediaFile.setFilePath(imageSpan.getImageSource().toString());
+        MediaUtils.setWPImageSpanWidth(context, imageUri, imageSpan);
+        mediaFile.setFeatured(true);
+        Editable postContent = mEditPostContentFragment.getContentEditText().getText();
+        WPImageSpan[] imageSpansInContent = postContent.getSpans(0, postContent.length(), WPImageSpan.class);
+        if (imageSpansInContent.length != 0) {
+            for (WPImageSpan wpIS : imageSpansInContent) {
+                if (!wpIS.getMediaFile().equals(mediaFile)) {
+                    wpIS.getMediaFile().setFeatured(false);
+                }
+            }
+        }
+
+        mediaFile.save();
+        PostActions.uploadPostFeaturedImage(mPost, imageUri.getEncodedPath(), this);
+
+        return true;
     }
 }

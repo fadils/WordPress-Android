@@ -51,6 +51,7 @@ public class Post implements Serializable {
     private boolean isLocalChange;
     private String mediaPaths;
     private String quickPostType;
+    private String featuredImage;
     private PostLocation mPostLocation;
 
     public Post() {
@@ -394,6 +395,14 @@ public class Post implements Serializable {
 
     public void setLocalTablePostId(long id) {
         this.localTablePostId = id;
+    }
+
+    public String getFeaturedImage() {
+        return featuredImage;
+    }
+
+    public void setFeaturedImage(String featuredImage) {
+        this.featuredImage = featuredImage;
     }
 
     public void setQuickPostType(String type) {

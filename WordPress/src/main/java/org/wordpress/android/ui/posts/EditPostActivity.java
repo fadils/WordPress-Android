@@ -19,6 +19,7 @@ import org.wordpress.android.R;
 import org.wordpress.android.WordPress;
 import org.wordpress.android.analytics.AnalyticsTracker;
 import org.wordpress.android.models.Blog;
+import org.wordpress.android.models.MediaFile;
 import org.wordpress.android.models.Post;
 import org.wordpress.android.models.PostStatus;
 import org.wordpress.android.ui.ActivityId;
@@ -71,6 +72,8 @@ public class EditPostActivity extends ActionBarActivity {
     private EditPostContentFragment mEditPostContentFragment;
     private EditPostSettingsFragment mEditPostSettingsFragment;
     private EditPostPreviewFragment mEditPostPreviewFragment;
+
+    private MediaFile mFeaturedImage;
 
     private boolean mIsNewPost;
 
@@ -480,6 +483,17 @@ public class EditPostActivity extends ActionBarActivity {
             }
             return fragment;
         }
+
+        @Override
+        public int getItemPosition(Object object) {
+            if (object instanceof EditPostSettingsFragment) {
+                EditPostSettingsFragment f = (EditPostSettingsFragment) object;
+                f.updateFragment();
+            }
+
+            return super.getItemPosition(object);
+        }
+
 
         @Override
         public int getCount() {

@@ -122,8 +122,10 @@
 
     <!-- featured image management-->
     <string name="set_featured_image">Set featured image</string>
+    <string name="set_as_featured_image">Set as featured image</string>
     <string name="remove_featured_image">Remove featured image</string>
     <string name="featured_image">Featured Image</string>
+    <string name="one_featured_image">Can only pick one image</string>
 
     <!-- Upload Media -->
     <string name="media_no_video_title">VideoPress unavailable</string>
