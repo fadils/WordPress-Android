@@ -4,7 +4,7 @@ buildscript {
         maven { url 'http://download.crashlytics.com/maven' }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.0.0'
+        classpath 'com.android.tools.build:gradle:1.1.0'
         classpath 'com.github.nrudenko:gradle-android-cq-plugin:0.1+'
         classpath 'com.crashlytics.tools.gradle:crashlytics-gradle:+'
     }
@@ -85,6 +85,10 @@ dependencies {
     androidTestCompile 'com.google.dexmaker:dexmaker-mockito:1.0'
     androidTestCompile 'org.objenesis:objenesis:2.1'
     androidTestCompile 'org.mockito:mockito-core:+'
+
+    androidTestCompile "junit:junit:4.10"
+    androidTestCompile "org.assertj:assertj-core:1.7.0"
+    androidTestCompile "org.robolectric:robolectric:3.0-rc2"
 
     // Provided by the WordPress-Android Repository
     compile 'org.wordpress:gcm:1.0.0' // not found in maven central
