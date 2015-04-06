@@ -282,10 +282,10 @@ public class WordPressDB {
                 // Remove WordPress.com credentials
                 removeDotComCredentials();
                 currentVersion++;
-            case 29:
+            /*case 29:
                 Log.i("database", "updated");
                 db.execSQL(ADD_FEATURED_IMAGE);
-                currentVersion++;
+                currentVersion++;*/
         }
 
         db.setVersion(DATABASE_VERSION);
@@ -887,7 +887,7 @@ public class WordPressDB {
                     values.put("wp_author_display_name", MapUtils.getMapStr(postMap, "wp_author_display_name"));
                     values.put("post_status", MapUtils.getMapStr(postMap, (isPage) ? "page_status" : "post_status"));
                     values.put("userid", MapUtils.getMapStr(postMap, "userid"));
-                    values.put("featuredImage", MapUtils.getMapStr(postMap, "featuredImage"));
+                    //values.put("featuredImage", MapUtils.getMapStr(postMap, "featuredImage"));
 
                     if (isPage) {
                         values.put("isPage", true);
@@ -985,7 +985,7 @@ public class WordPressDB {
             putPostLocation(post, values);
             values.put("isLocalChange", post.isLocalChange());
             values.put("mt_excerpt", post.getPostExcerpt());
-            values.put("featuredImage", post.getFeaturedImage());
+            //values.put("featuredImage", post.getFeaturedImage());
 
             Log.i("database", "post saved");
 
@@ -1024,7 +1024,7 @@ public class WordPressDB {
             values.put("wp_post_format", post.getPostFormat());
             values.put("isLocalChange", post.isLocalChange());
             values.put("mt_excerpt", post.getPostExcerpt());
-            values.put("featuredImage", post.getFeaturedImage());
+            //values.put("featuredImage", post.getFeaturedImage());
             putPostLocation(post, values);
 
             result = db.update(POSTS_TABLE, values, "blogID=? AND id=? AND isPage=?",
@@ -1122,7 +1122,7 @@ public class WordPressDB {
                 post.setAllowComments(SqlUtils.sqlToBool(c.getInt(c.getColumnIndex("mt_allow_comments"))));
                 post.setAllowPings(SqlUtils.sqlToBool(c.getInt(c.getColumnIndex("mt_allow_pings"))));
                 post.setPostExcerpt(c.getString(c.getColumnIndex("mt_excerpt")));
-                post.setFeaturedImage(c.getString(c.getColumnIndex("featuredImage")));
+                //post.setFeaturedImage(c.getString(c.getColumnIndex("featuredImage")));
                 post.setKeywords(c.getString(c.getColumnIndex("mt_keywords")));
                 post.setMoreText(c.getString(c.getColumnIndex("mt_text_more")));
                 post.setPermaLink(c.getString(c.getColumnIndex("permaLink")));

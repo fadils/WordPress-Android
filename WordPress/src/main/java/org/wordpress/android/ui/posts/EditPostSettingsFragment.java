@@ -182,7 +182,10 @@ public class EditPostSettingsFragment extends Fragment
                 mFeaturedImageViewLocal.setVisibility(View.GONE);
                 mRemoveFeaturedImageButton.setVisibility(View.GONE);
                 mSetFeaturedImageButton.setVisibility(View.VISIBLE);
-                PostActions.removeFeaturedImageInSettings(mPost);
+                disableSetFeaturedImageFromSettings();
+                if (mPost.isPublished()) {
+                    PostActions.removeFeaturedImageInSettings(mPost);
+                }
             }
         });
 
@@ -192,6 +195,7 @@ public class EditPostSettingsFragment extends Fragment
 
         if (WordPress.getCurrentBlog().isFeaturedImageCapable()) {
             mSetFeaturedImageButton.setVisibility(View.VISIBLE);
+            disableSetFeaturedImageFromSettings();
         }
 
         mSectionCategories = ((ViewGroup) rootView.findViewById(R.id.sectionCategories));
@@ -1031,6 +1035,7 @@ public class EditPostSettingsFragment extends Fragment
                 }
             } else {
                 mSetFeaturedImageButton.setVisibility(View.VISIBLE);
+                disableSetFeaturedImageFromSettings();
                 mRemoveFeaturedImageButton.setVisibility(View.GONE);
             }
         }
@@ -1129,5 +1134,9 @@ public class EditPostSettingsFragment extends Fragment
         PostActions.uploadPostFeaturedImage(mPost, imageUri.getEncodedPath(), this);
 
         return true;
+    }
+
+    private void disableSetFeaturedImageFromSettings() {
+        mSetFeaturedImageButton.setVisibility(View.GONE);
     }
 }
