@@ -57,6 +57,7 @@ import org.wordpress.android.models.Post;
 import org.wordpress.android.models.PostLocation;
 import org.wordpress.android.models.PostStatus;
 import org.wordpress.android.ui.media.MediaPickerActivity;
+import org.wordpress.android.ui.media.MediaSourcePostImages;
 import org.wordpress.android.ui.media.MediaSourceWPImages;
 import org.wordpress.android.ui.media.WordPressMediaUtils;
 import org.wordpress.android.util.AppLog;
@@ -1011,7 +1012,7 @@ public class EditPostSettingsFragment extends Fragment
 
     private ArrayList<MediaSource> postMediaSelectionSources() {
         ArrayList<MediaSource> imageMediaSources = new ArrayList<>();
-        imageMediaSources.add(new MediaSourceWPImages(mPost));
+        imageMediaSources.add(new MediaSourcePostImages(mPost));
 
         return imageMediaSources;
     }

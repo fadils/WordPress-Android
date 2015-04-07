@@ -154,7 +154,7 @@ public class ApiHelper {
                             mEditPostSettingsFragment.setFeaturedImage(featuredImage.getString("link"));
                         }
                     } catch (JSONException e) {
-                        setError(ErrorType.JSON_PARSE_ERROR, e.getMessage(), e);
+                        AppLog.d(T.POSTS, "Post doesn't have a featured image set");
                     }
                 }
             }
@@ -178,6 +178,11 @@ public class ApiHelper {
             XMLRPCClientInterface client = XMLRPCFactory.instantiate(mBlog.getUri(), mBlog.getHttpuser(),
                     mBlog.getHttppassword());
             Object result = null;
+
+            if (!mPost.isPublished()) {
+                return result;
+            }
+
             Object[] params = {mBlog.getRemoteBlogId(),
                     mBlog.getUsername(),
                     mBlog.getPassword(),
@@ -238,7 +243,7 @@ public class ApiHelper {
             mPost = (Post) arguments.get(2);
 
             if (!mPost.isPublished()) {
-                AppLog.e(AppLog.T.POSTS, "Cannot update local post");
+                AppLog.d(AppLog.T.POSTS, "Cannot update local post");
                 return null;
             }
 
