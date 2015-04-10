@@ -132,6 +132,8 @@ public class EditPostActivity extends ActionBarActivity implements EditorFragmen
     private Post mPost;
     private Post mOriginalPost;
 
+    private WPImageSpan[] mPostImages;
+
     private EditorFragmentAbstract mEditorFragment;
     private EditPostSettingsFragment mEditPostSettingsFragment;
     private EditPostPreviewFragment mEditPostPreviewFragment;
@@ -692,8 +694,22 @@ public class EditPostActivity extends ActionBarActivity implements EditorFragmen
                 if (mPost.hasFeaturedImage()) {
                     mEditPostSettingsFragment.setFeaturedImage(mPost.getFeaturedImage());
                 }
+                loadDraftAttachments();
             }
         }
+    }
+
+    private void loadDraftAttachments() {
+        Spannable postContent = (Spannable) mEditorFragment.getSpannedContent();
+        mPostImages = postContent.getSpans(0, postContent.length(), WPImageSpan.class);
+    }
+
+    public WPImageSpan[] getPostImages() {
+        if (mPostImages != null) {
+            return mPostImages;
+        }
+
+        return mPostImages = new WPImageSpan[1];
     }
 
     private void fillContentEditorFields() {

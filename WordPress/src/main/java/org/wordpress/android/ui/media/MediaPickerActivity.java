@@ -83,6 +83,7 @@ public class MediaPickerActivity extends ActionBarActivity
     public static final String DEVICE_VIDEO_MEDIA_SOURCES_KEY = "device- video=media-sources";
     public static final String BLOG_IMAGE_MEDIA_SOURCES_KEY = "blog-image-media-sources";
     public static final String BLOG_VIDEO_MEDIA_SOURCES_KEY = "blog-video-media-sources";
+    public static final String POST_IMAGE_MEDIA_SOURCES_KEY = "post-image-media-sources";
     /**
      * Key to extract the {@link java.util.ArrayList} of {@link org.wordpress.mediapicker.MediaItem}'s
      * that were selected by the user.
@@ -93,14 +94,13 @@ public class MediaPickerActivity extends ActionBarActivity
 
     private static final long   TAB_ANIMATION_DURATION_MS = 250l;
 
-
     private MediaPickerAdapter     mMediaPickerAdapter;
     private ArrayList<MediaSource>[] mMediaSources;
     private SlidingTabLayout       mTabLayout;
     private WPViewPager            mViewPager;
     private ActionMode             mActionMode;
     private String                 mCapturePath;
-    private boolean mSetFeaturedImageMode = false;
+    private boolean mSetFeaturedImageMode;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -108,6 +108,8 @@ public class MediaPickerActivity extends ActionBarActivity
 
         if (getIntent().hasExtra(SET_FEATURED_IMAGE)) {
             mSetFeaturedImageMode = true;
+        } else {
+            mSetFeaturedImageMode = false;
         }
 
         lockRotation();
@@ -309,7 +311,7 @@ public class MediaPickerActivity extends ActionBarActivity
         final Intent intent = getIntent();
 
         if (intent != null) {
-            mMediaSources = new ArrayList[4];
+            mMediaSources = new ArrayList[5];
 
             List<MediaSource> mediaSources = intent.getParcelableArrayListExtra(DEVICE_IMAGE_MEDIA_SOURCES_KEY);
             if (mediaSources != null) {
@@ -333,6 +335,12 @@ public class MediaPickerActivity extends ActionBarActivity
             if (mediaSources != null) {
                 mMediaSources[3] = new ArrayList<>();
                 mMediaSources[3].addAll(mediaSources);
+            }
+
+            mediaSources = intent.getParcelableArrayListExtra(POST_IMAGE_MEDIA_SOURCES_KEY);
+            if (mediaSources != null) {
+                mMediaSources[4] = new ArrayList<>();
+                mMediaSources[4].addAll(mediaSources);
             }
         }
     }
@@ -380,10 +388,31 @@ public class MediaPickerActivity extends ActionBarActivity
         if (mViewPager != null) {
             mViewPager.setPagingEnabled(true);
 
-            mMediaPickerAdapter.addTab(mMediaSources[0] != null ? mMediaSources[0] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_device_images));
-            mMediaPickerAdapter.addTab(mMediaSources[1] != null ? mMediaSources[1] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_device_videos));
-            mMediaPickerAdapter.addTab(mMediaSources[2] != null ? mMediaSources[2] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_site_images));
-            mMediaPickerAdapter.addTab(mMediaSources[3] != null ? mMediaSources[3] : new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_site_videos));
+            if (mSetFeaturedImageMode) {
+                mMediaPickerAdapter.addTab(mMediaSources[0] != null ?
+                                mMediaSources[0] : new ArrayList<MediaSource>(),
+                        getResources().getString(R.string.tab_title_device_images));
+                mMediaPickerAdapter.addTab(mMediaSources[2] != null ?
+                        mMediaSources[2] :
+                        new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_site_images));
+                mMediaPickerAdapter.addTab(mMediaSources[4] != null ?
+                        mMediaSources[4] :
+                        new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_post_images));
+
+            } else {
+                mMediaPickerAdapter.addTab(mMediaSources[0] != null ?
+                        mMediaSources[0] : new ArrayList<MediaSource>(),
+                        getResources().getString(R.string.tab_title_device_images));
+                mMediaPickerAdapter.addTab(mMediaSources[1] != null ?
+                            mMediaSources[1] :
+                            new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_device_videos));
+                mMediaPickerAdapter.addTab(mMediaSources[2] != null ?
+                        mMediaSources[2] :
+                        new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_site_images));
+                mMediaPickerAdapter.addTab(mMediaSources[3] != null ?
+                            mMediaSources[3] :
+                            new ArrayList<MediaSource>(), getResources().getString(R.string.tab_title_site_videos));
+            }
 
             mViewPager.setAdapter(mMediaPickerAdapter);
 

@@ -970,6 +970,7 @@ public class EditPostSettingsFragment extends Fragment
         Intent intent = new Intent(mActivity, MediaPickerActivity.class);
         intent.putExtra(MediaPickerActivity.SET_FEATURED_IMAGE, true);
         intent.putExtra(MediaPickerActivity.ACTIVITY_TITLE_KEY, getString(R.string.set_featured_image));
+        intent.putExtra(MediaPickerActivity.POST_IMAGE_MEDIA_SOURCES_KEY, postMediaSelectionSources());
         intent.putParcelableArrayListExtra(MediaPickerActivity.DEVICE_IMAGE_MEDIA_SOURCES_KEY, imageMediaSelectionSources());
         if (mActivity.getBlogMediaStatus() != 0) {
             intent.putParcelableArrayListExtra(MediaPickerActivity.BLOG_IMAGE_MEDIA_SOURCES_KEY, blogImageMediaSelectionSources());
@@ -995,6 +996,13 @@ public class EditPostSettingsFragment extends Fragment
     private ArrayList<MediaSource> blogImageMediaSelectionSources() {
         ArrayList<MediaSource> imageMediaSources = new ArrayList<>();
         imageMediaSources.add(new MediaSourceWPImages());
+
+        return imageMediaSources;
+    }
+
+    private ArrayList<MediaSource> postMediaSelectionSources() {
+        ArrayList<MediaSource> imageMediaSources = new ArrayList<>();
+        imageMediaSources.add(new MediaSourceWPImages(mPost));
 
         return imageMediaSources;
     }

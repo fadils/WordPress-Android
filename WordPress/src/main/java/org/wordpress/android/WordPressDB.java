@@ -1463,6 +1463,11 @@ public class WordPressDB {
                 + "(uploadState IS NULL OR uploadState IN ('uploaded', 'queued', 'failed', 'uploading')) AND mimeType LIKE ? ORDER BY (uploadState=?) DESC, date_created_gmt DESC", new String[] { blogId, "image%", "uploading" });
     }
 
+    public Cursor getMediaImagesForPost(Post post) {
+        return db.rawQuery("SELECT id as _id, * FROM " + MEDIA_TABLE + " WHERE blogId=? AND mediaId <> '' AND "
+                + "(uploadState IS NULL OR uploadState IN ('uploaded', 'queued', 'failed', 'uploading')) AND postId=? AND mimeType LIKE ? ORDER BY (uploadState=?) DESC, date_created_gmt DESC", new String[] { String.valueOf(post.getLocalTableBlogId()), "image%", "uploading", String.valueOf(post.getLocalTablePostId()) });
+    }
+
     /** Ids in the filteredIds will not be selected **/
     public Cursor getMediaImagesForBlog(String blogId, ArrayList<String> filteredIds) {
         String mediaIdsStr = "";

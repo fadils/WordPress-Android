@@ -15,6 +15,7 @@ import android.widget.ImageView;
 
 import org.wordpress.android.R;
 import org.wordpress.android.WordPress;
+import org.wordpress.android.models.Post;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.MediaUtils;
@@ -216,6 +217,10 @@ public class WordPressMediaUtils {
 
     public static Cursor getWordPressMediaImages(String blogId) {
         return WordPress.wpDB.getMediaImagesForBlog(blogId);
+    }
+
+    public static Cursor getWordPressMediaImagesInPost(Post post) {
+        return WordPress.wpDB.getMediaImagesForPost(post);
     }
 
     public static Cursor getWordPressMediaVideos(String blogId) {

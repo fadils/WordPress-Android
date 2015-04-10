@@ -16,6 +16,7 @@ import org.wordpress.android.R;
 import org.wordpress.android.WordPress;
 import org.wordpress.android.WordPressDB;
 import org.wordpress.android.models.Blog;
+import org.wordpress.android.models.Post;
 import org.wordpress.mediapicker.MediaItem;
 import org.wordpress.mediapicker.source.MediaSource;
 
@@ -35,6 +36,10 @@ public class MediaSourceWPImages implements MediaSource {
 
     public MediaSourceWPImages() {
         fetchImageData();
+    }
+
+    public MediaSourceWPImages(Post post) {
+        fetchImageDataForPost(post);
     }
 
     @Override
@@ -122,6 +127,22 @@ public class MediaSourceWPImages implements MediaSource {
             notifyLoadingStatus();
 
             Cursor imageCursor = WordPressMediaUtils.getWordPressMediaImages(String.valueOf(blog.getLocalTableBlogId()));
+
+            if (imageCursor != null) {
+                addWordPressImagesFromCursor(imageCursor);
+                imageCursor.close();
+            }
+        }
+    }
+
+    private void fetchImageDataForPost(Post post) {
+        Blog blog = WordPress.getCurrentBlog();
+
+        if (blog != null) {
+            mLoading = true;
+            notifyLoadingStatus();
+
+            Cursor imageCursor = WordPressMediaUtils.getWordPressMediaImagesInPost(post);
 
             if (imageCursor != null) {
                 addWordPressImagesFromCursor(imageCursor);
@@ -224,4 +245,13 @@ public class MediaSourceWPImages implements MediaSource {
             mListener.onMediaLoading(this, !mLoading);
         }
     }
+
+    public List<MediaItem> getmVerifiedItems() {
+        return mVerifiedItems;
+    }
+
+    public List<MediaItem> getmMediaItems() {
+        return mMediaItems;
+    }
+
 }
