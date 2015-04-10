@@ -55,7 +55,6 @@ import org.wordpress.android.ui.media.WordPressMediaUtils;
 import org.wordpress.android.ui.media.WordPressMediaUtils.RequestCode;
 import org.wordpress.android.ui.media.services.MediaUploadEvents;
 import org.wordpress.android.ui.media.services.MediaUploadService;
-import org.wordpress.android.ui.posts.actions.PostActions;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.AutolinkUtils;
@@ -85,6 +84,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Vector;
 
 import de.greenrobot.event.EventBus;
 
@@ -732,7 +732,13 @@ public class EditPostActivity extends ActionBarActivity implements EditorFragmen
                 else {
                     Log.i("featuredImage", "featured image: " + mPost.getFeaturedImage());
                     mEditorFragment.setContent(post.getContent().replaceAll("\uFFFC", ""));
-                    PostActions.syncFeaturedImageInSettings(post, mEditPostSettingsFragment);
+                    List<Object> args = new Vector<>();
+                    args.add(WordPress.getCurrentBlog());
+                    args.add(this);
+                    args.add(mEditPostSettingsFragment);
+                    args.add(mPost);
+                    new ApiHelper.SyncFeaturedImageInSettings().execute(args);
+                    //PostActions.syncFeaturedImageInSettings(post, mEditPostSettingsFragment);
                 }
             }
             if (!TextUtils.isEmpty(post.getTitle())) {

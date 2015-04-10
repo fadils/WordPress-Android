@@ -251,7 +251,7 @@ public class EditPostSettingsFragment extends Fragment
                 }
             }
             mPostFormatSpinner = (Spinner) rootView.findViewById(R.id.postFormat);
-            ArrayAdapter<String> pfAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, mPostFormatTitles);
+            ArrayAdapter<String> pfAdapter = new ArrayAdapter<String>(mActivity, android.R.layout.simple_spinner_item, mPostFormatTitles);
             pfAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             mPostFormatSpinner.setAdapter(pfAdapter);
             String activePostFormat = "standard";
@@ -283,7 +283,7 @@ public class EditPostSettingsFragment extends Fragment
             String[] items = new String[]{getResources().getString(R.string.publish_post), getResources().getString(R.string.draft),
                     getResources().getString(R.string.pending_review), getResources().getString(R.string.post_private)};
 
-            ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, items);
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(mActivity, android.R.layout.simple_spinner_item, items);
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             mStatusSpinner.setAdapter(adapter);
             mStatusSpinner.setOnTouchListener(
@@ -302,7 +302,7 @@ public class EditPostSettingsFragment extends Fragment
                         getResources().getString(R.string.pending_review),
                         getResources().getString(R.string.post_private)
                 };
-                adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, items);
+                adapter = new ArrayAdapter<String>(mActivity, android.R.layout.simple_spinner_item, items);
                 mStatusSpinner.setAdapter(adapter);
             }
 
@@ -314,7 +314,7 @@ public class EditPostSettingsFragment extends Fragment
                     flags |= android.text.format.DateUtils.FORMAT_ABBREV_MONTH;
                     flags |= android.text.format.DateUtils.FORMAT_SHOW_YEAR;
                     flags |= android.text.format.DateUtils.FORMAT_SHOW_TIME;
-                    String formattedDate = DateUtils.formatDateTime(getActivity(), pubDate,
+                    String formattedDate = DateUtils.formatDateTime(mActivity, pubDate,
                             flags);
                     mPubDateText.setText(formattedDate);
                 } catch (RuntimeException e) {
@@ -411,7 +411,7 @@ public class EditPostSettingsFragment extends Fragment
             if (mCategories.size() > 0) {
                 bundle.putSerializable("categories", new HashSet<String>(mCategories));
             }
-            Intent categoriesIntent = new Intent(getActivity(), SelectCategoriesActivity.class);
+            Intent categoriesIntent = new Intent(mActivity, SelectCategoriesActivity.class);
             categoriesIntent.putExtras(bundle);
             startActivityForResult(categoriesIntent, ACTIVITY_REQUEST_CODE_SELECT_CATEGORIES);
         } else if (id == R.id.categoryButton) {
@@ -442,11 +442,11 @@ public class EditPostSettingsFragment extends Fragment
     }
 
     private void showPostDateSelectionDialog() {
-        final DatePicker datePicker = new DatePicker(getActivity());
+        final DatePicker datePicker = new DatePicker(mActivity);
         datePicker.init(mYear, mMonth, mDay, null);
         datePicker.setCalendarViewShown(false);
 
-        new AlertDialog.Builder(getActivity())
+        new AlertDialog.Builder(mActivity)
                 .setTitle(R.string.select_date)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
@@ -479,12 +479,12 @@ public class EditPostSettingsFragment extends Fragment
     }
 
     private void showPostTimeSelectionDialog() {
-        final TimePicker timePicker = new TimePicker(getActivity());
-        timePicker.setIs24HourView(DateFormat.is24HourFormat(getActivity()));
+        final TimePicker timePicker = new TimePicker(mActivity);
+        timePicker.setIs24HourView(DateFormat.is24HourFormat(mActivity));
         timePicker.setCurrentHour(mHour);
         timePicker.setCurrentMinute(mMinute);
 
-        new AlertDialog.Builder(getActivity())
+        new AlertDialog.Builder(mActivity)
                 .setTitle(R.string.select_time)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
@@ -501,7 +501,7 @@ public class EditPostSettingsFragment extends Fragment
                             flags |= DateUtils.FORMAT_ABBREV_MONTH;
                             flags |= DateUtils.FORMAT_SHOW_YEAR;
                             flags |= DateUtils.FORMAT_SHOW_TIME;
-                            String formattedDate = DateUtils.formatDateTime(getActivity(), timestamp, flags);
+                            String formattedDate = DateUtils.formatDateTime(mActivity, timestamp, flags);
                             mCustomPubDate = timestamp;
                             mPubDateText.setText(formattedDate);
                             mIsCustomPubDate = true;
@@ -612,7 +612,7 @@ public class EditPostSettingsFragment extends Fragment
             latitude = args[0];
             longitude = args[1];
 
-            return GeocoderUtils.getAddressFromCoords(getActivity(), latitude, longitude);
+            return GeocoderUtils.getAddressFromCoords(mActivity, latitude, longitude);
         }
 
         protected void onPostExecute(Address address) {
@@ -639,7 +639,7 @@ public class EditPostSettingsFragment extends Fragment
         protected Address doInBackground(String... args) {
             String locationName = args[0];
 
-            return GeocoderUtils.getAddressFromLocationName(getActivity(), locationName);
+            return GeocoderUtils.getAddressFromLocationName(mActivity, locationName);
         }
 
         @Override
@@ -663,10 +663,10 @@ public class EditPostSettingsFragment extends Fragment
     private LocationHelper.LocationResult locationResult = new LocationHelper.LocationResult() {
         @Override
         public void gotLocation(final Location location) {
-            if (getActivity() == null)
+            if (mActivity == null)
                 return;
             // note that location will be null when requesting location fails
-            getActivity().runOnUiThread(new Runnable() {
+            mActivity.runOnUiThread(new Runnable() {
                 public void run() {
                     setLocation(location);
                 }
@@ -750,7 +750,7 @@ public class EditPostSettingsFragment extends Fragment
 
     private boolean hasLocationProvider() {
         boolean hasLocationProvider = false;
-        LocationManager locationManager = (LocationManager) getActivity().getSystemService(Activity.LOCATION_SERVICE);
+        LocationManager locationManager = (LocationManager) mActivity.getSystemService(Activity.LOCATION_SERVICE);
         List<String> providers = locationManager.getProviders(true);
         if (providers != null) {
             for (String providerName : providers) {
@@ -802,7 +802,7 @@ public class EditPostSettingsFragment extends Fragment
     private void fetchCurrentLocation() {
         if (mLocationHelper == null)
             mLocationHelper = new LocationHelper();
-        boolean canGetLocation = mLocationHelper.getLocation(getActivity(), locationResult);
+        boolean canGetLocation = mLocationHelper.getLocation(mActivity, locationResult);
 
         if (canGetLocation) {
             setLocationStatus(LocationStatus.SEARCHING);
@@ -851,12 +851,12 @@ public class EditPostSettingsFragment extends Fragment
     }
 
     private void showLocationNotAvailableError() {
-        Toast.makeText(getActivity(), getResources().getText(R.string.location_not_found), Toast.LENGTH_SHORT).show();
+        Toast.makeText(mActivity, getResources().getText(R.string.location_not_found), Toast.LENGTH_SHORT).show();
     }
 
     private void showFeaturedImageSuccessfulySet() {
         if (mRemoveFeaturedImageButton.getVisibility() == View.VISIBLE) {
-            Toast.makeText(getActivity(), getResources().getText(R.string.featured_image_is_set), Toast.LENGTH_SHORT).show();
+            Toast.makeText(mActivity, getResources().getText(R.string.featured_image_is_set), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -872,7 +872,7 @@ public class EditPostSettingsFragment extends Fragment
         if (status == LocationStatus.SEARCHING) {
             updateLocationText(getString(R.string.loading));
 
-            Animation aniBlink = AnimationUtils.loadAnimation(getActivity(), R.anim.blink);
+            Animation aniBlink = AnimationUtils.loadAnimation(mActivity, R.anim.blink);
             if (aniBlink != null)
                 mLocationText.startAnimation(aniBlink);
         } else {
@@ -944,7 +944,7 @@ public class EditPostSettingsFragment extends Fragment
         viewsToRemove.clear();
 
         // New category buttons
-        LayoutInflater layoutInflater = getActivity().getLayoutInflater();
+        LayoutInflater layoutInflater = mActivity.getLayoutInflater();
         for (String categoryName : mCategories) {
             Button buttonCategory = (Button) layoutInflater.inflate(R.layout.category_button, null);
             if (categoryName != null && buttonCategory != null) {
@@ -988,7 +988,7 @@ public class EditPostSettingsFragment extends Fragment
      */
     private ArrayList<MediaSource> imageMediaSelectionSources() {
         ArrayList<MediaSource> imageMediaSources = new ArrayList<>();
-        imageMediaSources.add(new MediaSourceDeviceImages(getActivity().getContentResolver()));
+        imageMediaSources.add(new MediaSourceDeviceImages(mActivity.getContentResolver()));
 
         return imageMediaSources;
     }
@@ -1064,12 +1064,12 @@ public class EditPostSettingsFragment extends Fragment
      */
     public int maxFeaturedImageThumbnailWidth() {
         if (mFeaturedImageThumbnailWidth == 0) {
-            Point size = DisplayUtils.getDisplayPixelSize(getActivity());
+            Point size = DisplayUtils.getDisplayPixelSize(mActivity);
             int screenWidth = size.x;
             int screenHeight = size.y;
             mFeaturedImageThumbnailWidth = (screenWidth > screenHeight) ? screenHeight : screenWidth;
             // 16dp of padding on each side so you can still place the cursor next to the image.
-            int padding = DisplayUtils.dpToPx(getActivity(), 16) * 2;
+            int padding = DisplayUtils.dpToPx(mActivity, 16) * 2;
             mFeaturedImageThumbnailWidth -= padding;
         }
 

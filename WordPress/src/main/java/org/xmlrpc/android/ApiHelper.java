@@ -2,6 +2,7 @@ package org.xmlrpc.android;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.util.Log;
 import android.util.Xml;
 
 import com.android.volley.NetworkResponse;
@@ -11,6 +12,7 @@ import com.android.volley.toolbox.RequestFuture;
 import com.android.volley.toolbox.StringRequest;
 import com.google.gson.Gson;
 
+import org.json.JSONObject;
 import org.wordpress.android.WordPress;
 import org.wordpress.android.datasets.CommentTable;
 import org.wordpress.android.models.Blog;
@@ -18,13 +20,15 @@ import org.wordpress.android.models.BlogIdentifier;
 import org.wordpress.android.models.Comment;
 import org.wordpress.android.models.CommentList;
 import org.wordpress.android.models.FeatureSet;
-import org.wordpress.android.util.helpers.MediaFile;
+import org.wordpress.android.models.Post;
 import org.wordpress.android.ui.media.MediaGridFragment.Filter;
+import org.wordpress.android.ui.posts.EditPostSettingsFragment;
 import org.wordpress.android.ui.posts.PostsListFragment;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.DateTimeUtils;
 import org.wordpress.android.util.MapUtils;
+import org.wordpress.android.util.helpers.MediaFile;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -92,6 +96,66 @@ public class ApiHelper {
 
     public interface GenericCallback extends GenericErrorCallback {
         public void onSuccess();
+    }
+
+    public static class SyncFeaturedImageInSettings extends HelperAsyncTask<java.util.List<?>, Void, Object> {
+        private Blog mBlog;
+        private Post mPost;
+        private EditPostSettingsFragment mEditPostSettingsFragment;
+
+        @Override
+        protected Object doInBackground(List<?>... args) {
+            List<?> arguments = args[0];
+            mBlog = (Blog) arguments.get(0);
+            mEditPostSettingsFragment = (EditPostSettingsFragment) arguments.get(2);
+            mPost = (Post) arguments.get(3);
+
+            Map<String, String> hPost = ApiHelper.blogOptionsXMLRPCParameters;
+
+            XMLRPCClientInterface client = XMLRPCFactory.instantiate(mBlog.getUri(), mBlog.getHttpuser(),
+                    mBlog.getHttppassword());
+            Object result = null;
+            Object[] params = {mBlog.getRemoteBlogId(),
+                    mBlog.getUsername(),
+                    mBlog.getPassword(),
+                    Integer.valueOf(mPost.getRemotePostId()),
+                    hPost};
+            try {
+                result = client.call("wp.getPost", params);
+            } catch (ClassCastException cce) {
+                setError(ErrorType.INVALID_RESULT, cce.getMessage(), cce);
+            } catch (XMLRPCException e) {
+                setError(ErrorType.NETWORK_XMLRPC, e.getMessage(), e);
+            } catch (IOException e) {
+                setError(ErrorType.NETWORK_XMLRPC, e.getMessage(), e);
+            } catch (XmlPullParserException e) {
+                setError(ErrorType.NETWORK_XMLRPC, e.getMessage(), e);
+            }
+            return result;
+        }
+
+        protected void onPostExecute(Object result) {
+            if (result != null && result instanceof HashMap) {
+                Map<?, ?> postFormats = (HashMap<?, ?>) result;
+                if (postFormats.size() > 0) {
+                    Gson gson = new Gson();
+                    String postFormatsJson = gson.toJson(postFormats);
+                    JSONObject featuredImage;
+
+                    try {
+                        JSONObject obj = new JSONObject(postFormatsJson);
+                        featuredImage = obj.getJSONObject("post_thumbnail");
+
+                        if (featuredImage != null) {
+                            mEditPostSettingsFragment.setFeaturedImage(featuredImage.getString("link"));
+                        }
+                        Log.d("My App", obj.toString());
+                    } catch (Throwable t) {
+                        Log.e("My App", "Could not parse malformed JSON: \"" + postFormatsJson + "\"");
+                    }
+                }
+            }
+        }
     }
 
     public static class GetPostFormatsTask extends HelperAsyncTask<java.util.List<?>, Void, Object> {
