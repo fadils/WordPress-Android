@@ -52,6 +52,7 @@ public class Post implements Serializable {
     private String mediaPaths;
     private String quickPostType;
     private String featuredImage;
+    private int featuredImageID;
     private PostLocation mPostLocation;
 
     public Post() {
@@ -401,8 +402,14 @@ public class Post implements Serializable {
         return featuredImage;
     }
 
+    public int getFeaturedImageID() { return featuredImageID; }
+
     public void setFeaturedImage(String featuredImage) {
         this.featuredImage = featuredImage;
+    }
+
+    public void setFeaturedImageID(int featuredImageID) {
+        this.featuredImageID = featuredImageID;
     }
 
     public void setQuickPostType(String type) {
