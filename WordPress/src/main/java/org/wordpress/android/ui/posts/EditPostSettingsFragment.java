@@ -59,7 +59,6 @@ import org.wordpress.android.models.PostStatus;
 import org.wordpress.android.ui.media.MediaPickerActivity;
 import org.wordpress.android.ui.media.MediaSourceWPImages;
 import org.wordpress.android.ui.media.WordPressMediaUtils;
-import org.wordpress.android.ui.posts.actions.PostActions;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.CrashlyticsUtils;
@@ -176,7 +175,12 @@ public class EditPostSettingsFragment extends Fragment
             @Override
             public void onClick(View v) {
                 startMediaSelection();
-                PostActions.updatePostFeaturedImage(mPost);
+                List<Object> args = new Vector<>();
+                args.add(WordPress.getCurrentBlog());
+                args.add(mActivity);
+                args.add(mPost);
+                new ApiHelper.UpdatePostFeaturedImage().execute(args);
+                //PostActions.updatePostFeaturedImage(mPost);
             }
         });
 
@@ -189,7 +193,12 @@ public class EditPostSettingsFragment extends Fragment
                 mRemoveFeaturedImageButton.setVisibility(View.GONE);
                 mLoadingFeaturedImageIndicator.setVisibility(View.GONE);
                 mSetFeaturedImageButton.setVisibility(View.VISIBLE);
-                PostActions.removeFeaturedImageInSettings(mPost);
+                List<Object> args = new Vector<>();
+                args.add(WordPress.getCurrentBlog());
+                args.add(mActivity);
+                args.add(mPost);
+                new ApiHelper.RemovePostFeaturedImage().execute(args);
+                //PostActions.removeFeaturedImageInSettings(mPost);
             }
         });
 
@@ -1030,6 +1039,13 @@ public class EditPostSettingsFragment extends Fragment
                     if (media.getSource().toString().contains("wordpress.com")) {
                         mFeaturedImageView.setVisibility(View.VISIBLE);
                         mFeaturedImageViewLocal.setVisibility(View.GONE);
+                        String blogId = String.valueOf(WordPress.getCurrentBlog().getLocalTableBlogId());
+                        MediaFile mediaFile = mActivity.createMediaFile(blogId, media.getTag());
+                        Log.i("featured image", "media file id: " + mediaFile.getId());
+                        Log.i("featured image", "media file id: " + mediaFile.getMediaId());
+
+                        mPost.setFeaturedImageID(Integer.valueOf(mediaFile.getMediaId()));
+                        updatePostSettingsAndSaveButton();
                         addRemoteMedia(media.getSource());
                         ++libraryMediaAdded;
                     } else { // local images
@@ -1099,7 +1115,12 @@ public class EditPostSettingsFragment extends Fragment
             // Post is published, and featured image already contains URL
             // can update featured_image field directly
             if (mPost.isPublished()) {
-                PostActions.updatePostFeaturedImage(mPost);
+                List<Object> args = new Vector<>();
+                args.add(WordPress.getCurrentBlog());
+                args.add(mActivity);
+                args.add(mPost);
+                new ApiHelper.UpdatePostFeaturedImage().execute(args);
+                //PostActions.updatePostFeaturedImage(mPost);
             }
         } else {
             mFeaturedImageView.setVisibility(View.GONE);
@@ -1128,9 +1149,6 @@ public class EditPostSettingsFragment extends Fragment
         mFeaturedImageView.setImageUrl(mFeaturedImageURL, WordPress.imageLoader);
         mPost.setFeaturedImage(mFeaturedImageURL);
         showFeaturedImageSuccessfulySet();
-        updatePostSettingsAndSaveButton();
-
-        Log.i("featuredImage", "featured image: " + mPost.getFeaturedImage());
 
         return true;
     }
@@ -1182,11 +1200,16 @@ public class EditPostSettingsFragment extends Fragment
                 new ApiHelper.GetMediaItemTask.Callback() {
                     @Override
                     public void onSuccess(MediaFile mediaFile) {
-                        mPost.setFeaturedImage(mediaFile.getFileURL());
                         updatePostSettingsAndSaveButton();
                         mLoadingFeaturedImageIndicator.setVisibility(View.GONE);
                         showFeaturedImageSuccessfulySet();
-                        PostActions.updatePostFeaturedImage(mPost);
+                        List<Object> args = new Vector<>();
+                        args.add(WordPress.getCurrentBlog());
+                        args.add(mActivity);
+                        args.add(mPost);
+                        new ApiHelper.UpdatePostFeaturedImage().execute(args);
+
+                        //PostActions.updatePostFeaturedImage(mPost);
                     }
 
                     @Override
@@ -1208,6 +1231,9 @@ public class EditPostSettingsFragment extends Fragment
                 new ApiHelper.UploadMediaTask.Callback() {
                     @Override
                     public void onSuccess(String id) {
+                        Log.i("Featured Image", "ID: " + id);
+                        mPost.setFeaturedImageID(Integer.valueOf(id));
+                        updatePostSettingsAndSaveButton();
                         setFeaturedImageURL(id);
                     }
 

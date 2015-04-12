@@ -455,7 +455,7 @@ public class Post implements Serializable {
     }
 
     public boolean hasFeaturedImage() {
-        return featuredImage != null;
+        return featuredImageID != 0;
     }
 
     @Override

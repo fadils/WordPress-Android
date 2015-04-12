@@ -12,6 +12,7 @@ import com.android.volley.toolbox.RequestFuture;
 import com.android.volley.toolbox.StringRequest;
 import com.google.gson.Gson;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.wordpress.android.WordPress;
 import org.wordpress.android.datasets.CommentTable;
@@ -22,6 +23,7 @@ import org.wordpress.android.models.CommentList;
 import org.wordpress.android.models.FeatureSet;
 import org.wordpress.android.models.Post;
 import org.wordpress.android.ui.media.MediaGridFragment.Filter;
+import org.wordpress.android.ui.posts.EditPostActivity;
 import org.wordpress.android.ui.posts.EditPostSettingsFragment;
 import org.wordpress.android.ui.posts.PostsListFragment;
 import org.wordpress.android.util.AppLog;
@@ -54,7 +56,8 @@ import javax.net.ssl.SSLHandshakeException;
 public class ApiHelper {
     public enum ErrorType {
         NO_ERROR, UNKNOWN_ERROR, INVALID_CURRENT_BLOG, NETWORK_XMLRPC, INVALID_CONTEXT,
-        INVALID_RESULT, NO_UPLOAD_FILES_CAP, CAST_EXCEPTION, TASK_CANCELLED, UNAUTHORIZED
+        INVALID_RESULT, NO_UPLOAD_FILES_CAP, CAST_EXCEPTION, TASK_CANCELLED, UNAUTHORIZED,
+        JSON_PARSE_ERROR
     }
 
     public static final Map<String, String> blogOptionsXMLRPCParameters = new HashMap<String, String>();
@@ -107,8 +110,68 @@ public class ApiHelper {
         protected Object doInBackground(List<?>... args) {
             List<?> arguments = args[0];
             mBlog = (Blog) arguments.get(0);
-            mEditPostSettingsFragment = (EditPostSettingsFragment) arguments.get(2);
-            mPost = (Post) arguments.get(3);
+            mEditPostSettingsFragment = (EditPostSettingsFragment) arguments.get(1);
+            mPost = (Post) arguments.get(2);
+
+            Map<String, String> hPost = ApiHelper.blogOptionsXMLRPCParameters;
+
+            XMLRPCClientInterface client = XMLRPCFactory.instantiate(mBlog.getUri(), mBlog.getHttpuser(),
+                    mBlog.getHttppassword());
+            Object result = null;
+            Object[] params = {mBlog.getRemoteBlogId(),
+                    mBlog.getUsername(),
+                    mBlog.getPassword(),
+                    Integer.valueOf(mPost.getRemotePostId()),
+                    hPost};
+            try {
+                result = client.call("wp.getPost", params);
+            } catch (ClassCastException cce) {
+                setError(ErrorType.INVALID_RESULT, cce.getMessage(), cce);
+            } catch (XMLRPCException e) {
+                setError(ErrorType.NETWORK_XMLRPC, e.getMessage(), e);
+            } catch (IOException e) {
+                setError(ErrorType.NETWORK_XMLRPC, e.getMessage(), e);
+            } catch (XmlPullParserException e) {
+                setError(ErrorType.NETWORK_XMLRPC, e.getMessage(), e);
+            }
+            return result;
+        }
+
+        protected void onPostExecute(Object result) {
+            if (result != null && result instanceof HashMap) {
+                Map<?, ?> postFormats = (HashMap<?, ?>) result;
+                if (postFormats.size() > 0) {
+                    Gson gson = new Gson();
+                    String postFormatsJson = gson.toJson(postFormats);
+                    JSONObject featuredImage;
+
+                    try {
+                        JSONObject obj = new JSONObject(postFormatsJson);
+                        Log.i("JSON", obj.toString());
+                        if (obj.get("post_thumbnail") != null) {
+                            featuredImage = obj.getJSONObject("post_thumbnail");
+                            mPost.setFeaturedImageID(featuredImage.getInt("attachment_id"));
+                            mEditPostSettingsFragment.setFeaturedImage(featuredImage.getString("link"));
+                        }
+                    } catch (JSONException e) {
+                        setError(ErrorType.JSON_PARSE_ERROR, e.getMessage(), e);
+                    }
+                }
+            }
+        }
+    }
+
+    public static class RemovePostFeaturedImage extends HelperAsyncTask<java.util.List<?>, Void, Object> {
+        private Blog mBlog;
+        private EditPostActivity mActivity;
+        private Post mPost;
+
+        @Override
+        protected Object doInBackground(List<?>... args) {
+            List<?> arguments = args[0];
+            mBlog = (Blog) arguments.get(0);
+            mActivity = (EditPostActivity) arguments.get(1);
+            mPost = (Post) arguments.get(2);
 
             Map<String, String> hPost = ApiHelper.blogOptionsXMLRPCParameters;
 
@@ -146,14 +209,70 @@ public class ApiHelper {
                         JSONObject obj = new JSONObject(postFormatsJson);
                         featuredImage = obj.getJSONObject("post_thumbnail");
 
-                        if (featuredImage != null) {
-                            mEditPostSettingsFragment.setFeaturedImage(featuredImage.getString("link"));
+                        if (featuredImage.getInt("attachment_id") != 0) {
+                            mPost.setFeaturedImageID(0);
+                            List<Object> args = new Vector<>();
+                            args.add(mBlog);
+                            args.add(mActivity);
+                            args.add(mPost);
+                            new UpdatePostFeaturedImage().execute(args);
                         }
-                        Log.d("My App", obj.toString());
-                    } catch (Throwable t) {
-                        Log.e("My App", "Could not parse malformed JSON: \"" + postFormatsJson + "\"");
+                    } catch (JSONException e) {
+                        setError(ErrorType.JSON_PARSE_ERROR, e.getMessage(), e);
                     }
                 }
+            }
+        }
+    }
+
+    public static class UpdatePostFeaturedImage extends HelperAsyncTask<java.util.List<?>, Void, Object> {
+        private Blog mBlog;
+        private EditPostActivity mActivity;
+        private Post mPost;
+
+        @Override
+        protected Object doInBackground(List<?>... args) {
+            List<?> arguments = args[0];
+            mBlog = (Blog) arguments.get(0);
+            mActivity = (EditPostActivity) arguments.get(1);
+            mPost = (Post) arguments.get(2);
+
+            if (!mPost.isPublished()) {
+                AppLog.e(AppLog.T.POSTS, "Cannot update local post");
+                return null;
+            }
+
+            Map<String, Object> content = new HashMap<String, Object>();
+            content.put("post_thumbnail", mPost.getFeaturedImageID());
+
+            XMLRPCClientInterface client = XMLRPCFactory.instantiate(mBlog.getUri(), mBlog.getHttpuser(),
+                    mBlog.getHttppassword());
+            Object result = null;
+
+            Object[] params = {mBlog.getRemoteBlogId(),
+                    mBlog.getUsername(),
+                    mBlog.getPassword(),
+                    Integer.valueOf(mPost.getRemotePostId()),
+                    content};
+            try {
+                result = client.call("wp.editPost", params);
+            } catch (ClassCastException cce) {
+                setError(ErrorType.INVALID_RESULT, cce.getMessage(), cce);
+            } catch (XMLRPCException e) {
+                setError(ErrorType.NETWORK_XMLRPC, e.getMessage(), e);
+            } catch (IOException e) {
+                setError(ErrorType.NETWORK_XMLRPC, e.getMessage(), e);
+            } catch (XmlPullParserException e) {
+                setError(ErrorType.NETWORK_XMLRPC, e.getMessage(), e);
+            }
+            return result;
+        }
+
+        protected void onPostExecute(boolean result) {
+            if (result) {
+                AppLog.d(AppLog.T.POSTS, "updated");
+            } else {
+                AppLog.e(AppLog.T.POSTS, "failed to update");
             }
         }
     }
@@ -850,7 +969,7 @@ public class ApiHelper {
             };
             Map<?, ?> results = null;
             try {
-                results = (Map<?, ?>) client.call("wp.getMediaItem", apiParams);
+                results = (HashMap<?, ?>) client.call("wp.getMediaItem", apiParams);
             } catch (ClassCastException cce) {
                 setError(ErrorType.INVALID_RESULT, cce.getMessage(), cce);
             } catch (XMLRPCException e) {
@@ -867,6 +986,7 @@ public class ApiHelper {
                 WordPress.wpDB.saveMediaFile(mediaFile);
                 return mediaFile;
             } else {
+                Log.d("featured image", "null");
                 return null;
             }
         }

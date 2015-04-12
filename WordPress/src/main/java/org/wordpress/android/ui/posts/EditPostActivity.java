@@ -606,7 +606,7 @@ public class EditPostActivity extends ActionBarActivity implements EditorFragmen
         return mMaxThumbWidth;
     }
 
-    private MediaFile createMediaFile(String blogId, final String mediaId) {
+    public MediaFile createMediaFile(String blogId, final String mediaId) {
         Cursor cursor = WordPress.wpDB.getMediaFile(blogId, mediaId);
 
         if (cursor == null || !cursor.moveToFirst()) {
@@ -691,10 +691,25 @@ public class EditPostActivity extends ActionBarActivity implements EditorFragmen
         protected void onPostExecute(Spanned spanned) {
             if (spanned != null) {
                 mEditorFragment.setContent(spanned);
-                if (mPost.hasFeaturedImage()) {
-                    mEditPostSettingsFragment.setFeaturedImage(mPost.getFeaturedImage());
-                }
-                loadDraftAttachments();
+            }
+
+            if (mPost.hasFeaturedImage()) {
+                ApiHelper.GetMediaItemTask task = new ApiHelper.GetMediaItemTask(mPost.getFeaturedImageID(), new ApiHelper.GetMediaItemTask.Callback() {
+                    @Override
+                    public void onSuccess(MediaFile result) {
+                        Log.i("featured image", "URL: " + result.getFileURL());
+                        mEditPostSettingsFragment.setFeaturedImage(result.getFileURL());
+                    }
+
+                    @Override
+                    public void onFailure(ApiHelper.ErrorType errorType, String errorMessage, Throwable throwable) {
+                        Log.i("featured image", "Failed to get media");
+                    }
+                });
+
+                List<Object> apiArgs = new ArrayList<>();
+                apiArgs.add(WordPress.getCurrentBlog());
+                task.execute(apiArgs);
             }
         }
     }
@@ -724,21 +739,19 @@ public class EditPostActivity extends ActionBarActivity implements EditorFragmen
         if (post != null) {
             if (!TextUtils.isEmpty(post.getContent())) {
                 if (post.isLocalDraft()) {
-                    Log.i("featuredImage", "featured image: " + mPost.getFeaturedImage());
+                    Log.i("featuredImage", "featured image: " + mPost.getFeaturedImageID());
                     // Load local post content in the background, as it may take time to generate images
                     new LoadPostContentTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,
                             post.getContent().replaceAll("\uFFFC", ""));
                 }
                 else {
-                    Log.i("featuredImage", "featured image: " + mPost.getFeaturedImage());
+                    Log.i("featuredImage", "featured image: " + mPost.getFeaturedImageID());
                     mEditorFragment.setContent(post.getContent().replaceAll("\uFFFC", ""));
                     List<Object> args = new Vector<>();
                     args.add(WordPress.getCurrentBlog());
-                    args.add(this);
                     args.add(mEditPostSettingsFragment);
                     args.add(mPost);
                     new ApiHelper.SyncFeaturedImageInSettings().execute(args);
-                    //PostActions.syncFeaturedImageInSettings(post, mEditPostSettingsFragment);
                 }
             }
             if (!TextUtils.isEmpty(post.getTitle())) {
